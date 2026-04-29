@@ -1,135 +1,105 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
-  "https://csxokyoobaztsesyknjz.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzeG9reW9vYmF6dHNlc3lrbmp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0MzgzMjcsImV4cCI6MjA5MzAxNDMyN30.198J49PGCuvmu52C2-LRAWye8nd6OyvSZvmYD8zNATM"
+  "https://csxokyoobaztsesykjnz.supabase.co",
+  "PASTE_YOUR_PUBLISHABLE_KEY_HERE"
 );
 
 export default function App() {
-  const [user, setUser] = useState(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  const [busNumber, setBusNumber] = useState("");
-  const [partName, setPartName] = useState("");
-  const [modifiedPartNumber, setModifiedPartNumber] = useState("");
-  const [directFitPartNumber, setDirectFitPartNumber] = useState("");
-  const [modifiedPartCost, setModifiedPartCost] = useState("");
-  const [directFitPartCost, setDirectFitPartCost] = useState("");
-  const [laborRate, setLaborRate] = useState("75");
-  const [suppliesCost, setSuppliesCost] = useState("");
-  const [clockIn, setClockIn] = useState("");
-  const [clockOut, setClockOut] = useState("");
-  const [comments, setComments] = useState("");
-  const [materialsUsed, setMaterialsUsed] = useState("");
+  const [user, setUser] = useState(null);
   const [logs, setLogs] = useState([]);
 
-  const hours =
-    clockIn && clockOut
-      ? Math.max(0, (new Date(clockOut) - new Date(clockIn)) / 1000 / 60 / 60)
-      : 0;
+  const [bus, setBus] = useState("");
+  const [part, setPart] = useState("");
+  const [clockIn, setClockIn] = useState("");
+  const [clockOut, setClockOut] = useState("");
 
-  const laborCost = hours * Number(laborRate || 0);
-  const modifiedTotal =
-    Number(modifiedPartCost || 0) + laborCost + Number(suppliesCost || 0);
-  const directFitTotal = Number(directFitPartCost || 0);
-  const difference = modifiedTotal - directFitTotal;
+  const isAdmin = email.includes("admin"); // simple admin check
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setUser(data.user);
-        loadLogs();
-      }
-    });
-  }, []);
+    if (user) fetchLogs();
+  }, [user]);
 
-  async function signUp() {
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) alert(error.message);
-    else alert("Account created. Now sign in.");
-  }
+  const fetchLogs = async () => {
+    const { data } = await supabase
+      .from("part_logs")
+      .select("*")
+      .order("created_at", { ascending: false });
+    setLogs(data || []);
+  };
 
-  async function signIn() {
+  const signIn = async () => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    if (error) alert(error.message);
+    else setUser(data.user);
+  };
+
+  const signUp = async () => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+    if (error) alert(error.message);
+    else alert("Account created");
+  };
+
+  const saveLog = async () => {
+    const { error } = await supabase.from("part_logs").insert({
+      bus_number: bus,
+      part_name: part,
+      clock_in: clockIn || null,
+      clock_out: clockOut || null,
+      tech_email: user.email,
+    });
 
     if (error) alert(error.message);
     else {
-      setUser(data.user);
-      loadLogs();
+      alert("Saved!");
+      fetchLogs();
     }
-  }
+  };
 
-  async function signOut() {
-    await supabase.auth.signOut();
-    setUser(null);
-  }
+  const deleteLog = async (id) => {
+    await supabase.from("part_logs").delete().eq("id", id);
+    fetchLogs();
+  };
 
-  function nowLocal() {
-    const d = new Date();
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-    return d.toISOString().slice(0, 16);
-  }
+  const exportCSV = () => {
+    let csv =
+      "Bus,Part,Tech,Clock In,Clock Out\n" +
+      logs
+        .map(
+          (l) =>
+            `${l.bus_number},${l.part_name},${l.tech_email},${l.clock_in},${l.clock_out}`
+        )
+        .join("\n");
 
-  async function loadLogs() {
-    const { data, error } = await supabase
-      .from("part_logs")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) alert(error.message);
-    else setLogs(data || []);
-  }
-
-  async function saveLog() {
-    const { error } = await supabase.from("part_logs").insert({
-      tech_email: user.email,
-      bus_number: busNumber,
-      part_name: partName,
-      modified_part_number: modifiedPartNumber,
-      direct_fit_part_number: directFitPartNumber,
-      modified_part_cost: Number(modifiedPartCost || 0),
-      direct_fit_part_cost: Number(directFitPartCost || 0),
-      labor_rate: Number(laborRate || 0),
-      supplies_cost: Number(suppliesCost || 0),
-      clock_in: clockIn || null,
-      clock_out: clockOut || null,
-      comments,
-      materials_used: materialsUsed,
-    });
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    alert("Log saved!");
-    setBusNumber("");
-    setPartName("");
-    setModifiedPartNumber("");
-    setDirectFitPartNumber("");
-    setModifiedPartCost("");
-    setDirectFitPartCost("");
-    setSuppliesCost("");
-    setClockIn("");
-    setClockOut("");
-    setComments("");
-    setMaterialsUsed("");
-    loadLogs();
-  }
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "logs.csv";
+    a.click();
+  };
 
   if (!user) {
     return (
-      <div style={{ padding: 30, fontFamily: "Arial" }}>
-        <h1>Part Tracker Login</h1>
-        <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <br /><br />
-        <input placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <br /><br />
+      <div style={{ padding: 20 }}>
+        <h2>Login</h2>
+        <input placeholder="Email" onChange={(e) => setEmail(e.target.value)} />
+        <br />
+        <input
+          placeholder="Password"
+          type="password"
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <br />
         <button onClick={signIn}>Sign In</button>
         <button onClick={signUp}>Create Account</button>
       </div>
@@ -137,101 +107,57 @@ export default function App() {
   }
 
   return (
-    <div style={{ padding: 30, fontFamily: "Arial", maxWidth: 1100 }}>
-      <button onClick={signOut}>Sign Out</button>
-      <h1>Part Modification Cost Tracker</h1>
+    <div style={{ padding: 20 }}>
+      <h2>Part Log</h2>
       <p>Signed in as: {user.email}</p>
 
-      <h2>Tech Entry</h2>
-
-      <input placeholder="Bus Number" value={busNumber} onChange={(e) => setBusNumber(e.target.value)} />
-      <input placeholder="Part Name" value={partName} onChange={(e) => setPartName(e.target.value)} />
-      <br /><br />
-
-      <input placeholder="Part # Requiring Modification" value={modifiedPartNumber} onChange={(e) => setModifiedPartNumber(e.target.value)} />
-      <input placeholder="Direct-Fit Part #" value={directFitPartNumber} onChange={(e) => setDirectFitPartNumber(e.target.value)} />
-      <br /><br />
-
-      <input placeholder="Modified Part Cost" type="number" value={modifiedPartCost} onChange={(e) => setModifiedPartCost(e.target.value)} />
-      <input placeholder="Direct-Fit Part Cost" type="number" value={directFitPartCost} onChange={(e) => setDirectFitPartCost(e.target.value)} />
-      <br /><br />
-
-      <input placeholder="Labor Rate" type="number" value={laborRate} onChange={(e) => setLaborRate(e.target.value)} />
-      <input placeholder="Supplies Cost" type="number" value={suppliesCost} onChange={(e) => setSuppliesCost(e.target.value)} />
-      <br /><br />
-
-      <label>Clock In: </label>
-      <input type="datetime-local" value={clockIn} onChange={(e) => setClockIn(e.target.value)} />
-      <button onClick={() => setClockIn(nowLocal())}>Now</button>
-
-      <br /><br />
-
-      <label>Clock Out: </label>
-      <input type="datetime-local" value={clockOut} onChange={(e) => setClockOut(e.target.value)} />
-      <button onClick={() => setClockOut(nowLocal())}>Now</button>
-
-      <br /><br />
-
-      <textarea placeholder="Modification Comments" value={comments} onChange={(e) => setComments(e.target.value)} rows="4" cols="60" />
-      <br /><br />
-      <textarea placeholder="Materials Used" value={materialsUsed} onChange={(e) => setMaterialsUsed(e.target.value)} rows="4" cols="60" />
-
-      <h2>Live Cost Comparison</h2>
-      <p>Labor Hours: {hours.toFixed(2)}</p>
-      <p>Labor Cost: ${laborCost.toFixed(2)}</p>
-      <p>Modified Part Total: ${modifiedTotal.toFixed(2)}</p>
-      <p>Direct-Fit Part Total: ${directFitTotal.toFixed(2)}</p>
-      <h3>
-        {difference > 0
-          ? `Modifying costs $${difference.toFixed(2)} more`
-          : `Modifying saves $${Math.abs(difference).toFixed(2)}`}
-      </h3>
-
+      <input
+        placeholder="Bus Number"
+        onChange={(e) => setBus(e.target.value)}
+      />
+      <br />
+      <input
+        placeholder="Part Name"
+        onChange={(e) => setPart(e.target.value)}
+      />
+      <br />
+      <input
+        type="datetime-local"
+        onChange={(e) => setClockIn(e.target.value)}
+      />
+      <br />
+      <input
+        type="datetime-local"
+        onChange={(e) => setClockOut(e.target.value)}
+      />
+      <br />
       <button onClick={saveLog}>Save Log</button>
 
       <hr />
 
-      <h2>Saved Logs</h2>
-      <button onClick={loadLogs}>Refresh Logs</button>
+      {isAdmin && (
+        <>
+          <h3>Admin Dashboard</h3>
+          <button onClick={exportCSV}>Export CSV</button>
 
-      <table border="1" cellPadding="6" style={{ marginTop: 15, borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th>Bus</th>
-            <th>Tech</th>
-            <th>Part</th>
-            <th>Modified #</th>
-            <th>Direct-Fit #</th>
-            <th>Mod Cost</th>
-            <th>Direct Cost</th>
-            <th>Labor Rate</th>
-            <th>Supplies</th>
-            <th>Clock In</th>
-            <th>Clock Out</th>
-            <th>Comments</th>
-            <th>Materials</th>
-          </tr>
-        </thead>
-        <tbody>
           {logs.map((log) => (
-            <tr key={log.id}>
-              <td>{log.bus_number}</td>
-              <td>{log.tech_email}</td>
-              <td>{log.part_name}</td>
-              <td>{log.modified_part_number}</td>
-              <td>{log.direct_fit_part_number}</td>
-              <td>${Number(log.modified_part_cost || 0).toFixed(2)}</td>
-              <td>${Number(log.direct_fit_part_cost || 0).toFixed(2)}</td>
-              <td>${Number(log.labor_rate || 0).toFixed(2)}</td>
-              <td>${Number(log.supplies_cost || 0).toFixed(2)}</td>
-              <td>{log.clock_in}</td>
-              <td>{log.clock_out}</td>
-              <td>{log.comments}</td>
-              <td>{log.materials_used}</td>
-            </tr>
+            <div
+              key={log.id}
+              style={{ border: "1px solid #ccc", margin: 10, padding: 10 }}
+            >
+              <b>{log.bus_number}</b> - {log.part_name}
+              <br />
+              Tech: {log.tech_email}
+              <br />
+              In: {log.clock_in}
+              <br />
+              Out: {log.clock_out}
+              <br />
+              <button onClick={() => deleteLog(log.id)}>Delete</button>
+            </div>
           ))}
-        </tbody>
-      </table>
+        </>
+      )}
     </div>
   );
 }
