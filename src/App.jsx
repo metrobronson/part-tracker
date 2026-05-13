@@ -10,7 +10,6 @@ export default function App() {
   const [editingLog, setEditingLog] = useState(null);
   const [saveStatus, setSaveStatus] = useState("");
 
-  // Form fields
   const [busNumber, setBusNumber] = useState("");
   const [partName, setPartName] = useState("");
   const [modifiedPartNumber, setModifiedPartNumber] = useState("");
@@ -103,12 +102,6 @@ export default function App() {
     setLogs(localLogs.filter(l => l.id !== id));
   }
 
-  const filteredLogs = logs.filter(log =>
-    [log.bus_number, log.part_name, log.modified_part_number].some(f => 
-      f?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
-
   if (!user) {
     return (
       <div style={{ padding: 40, maxWidth: 520, margin: "100px auto", textAlign: "center", fontFamily: "Arial" }}>
@@ -123,7 +116,7 @@ export default function App() {
           Create Account (Coming Soon)
         </button>
 
-        <h3 style={{ marginBottom: 20 }}>Quick Login (Use These)</h3>
+        <h3 style={{ marginBottom: 20 }}>Quick Login</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <button onClick={() => bypassLogin(true)} style={{ padding: "22px", fontSize: "20px", background: "#003087", color: "white", border: "none", borderRadius: 12 }}>
             👑 Admin - Gary (Full Access)
@@ -152,7 +145,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Full Form */}
       <div style={{ background: "#fff", borderRadius: 16, padding: 35, marginBottom: 40, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
         <h2 style={{ color: "#003087" }}>{editingLog ? "Edit Log" : "New Part Modification"}</h2>
         
