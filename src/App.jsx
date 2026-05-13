@@ -9,7 +9,7 @@ const supabase = createClient(
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [authMode, setAuthMode] = useState("signin");
+  const [authMode, setAuthMode] = useState("signin"); // signin or signup
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
@@ -120,6 +120,17 @@ export default function App() {
     )
   );
 
+  async function handleAuth() {
+    if (authMode === "signup") {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) setAuthError(error.message);
+      else alert("✅ Check your email to confirm your account!");
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) setAuthError(error.message);
+    }
+  }
+
   if (!user) {
     return (
       <div style={{ padding: 40, maxWidth: 520, margin: "120px auto", textAlign: "center", fontFamily: "Arial" }}>
@@ -128,22 +139,53 @@ export default function App() {
         <p style={{ fontSize: "1.35rem", color: "#555", marginBottom: 40 }}>Fleet Maintenance • Metro</p>
 
         <div style={{ marginBottom: 25 }}>
-          <button onClick={() => setAuthMode("signin")} style={{ marginRight: 20, fontWeight: authMode === "signin" ? "bold" : "normal", padding: "8px 20px" }}>Sign In</button>
-          <button onClick={() => setAuthMode("signup")} style={{ fontWeight: authMode === "signup" ? "bold" : "normal", padding: "8px 20px" }}>Sign Up</button>
+          <button 
+            onClick={() => setAuthMode("signin")} 
+            style={{ marginRight: 20, fontWeight: authMode === "signin" ? "bold" : "normal", padding: "8px 20px" }}
+          >
+            Sign In
+          </button>
+          <button 
+            onClick={() => setAuthMode("signup")} 
+            style={{ fontWeight: authMode === "signup" ? "bold" : "normal", padding: "8px 20px" }}
+          >
+            Sign Up
+          </button>
         </div>
 
-        <input type="email" placeholder="Metro Email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 12, borderRadius: 8 }} />
-        <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 20, borderRadius: 8 }} />
+        <input 
+          type="email" 
+          placeholder="Metro Email" 
+          value={email} 
+          onChange={e => setEmail(e.target.value)} 
+          style={{ width: "100%", padding: 14, marginBottom: 12, borderRadius: 8 }} 
+        />
+        <input 
+          type="password" 
+          placeholder="Password" 
+          value={password} 
+          onChange={e => setPassword(e.target.value)} 
+          style={{ width: "100%", padding: 14, marginBottom: 20, borderRadius: 8 }} 
+        />
 
-        <button style={{ width: "100%", padding: "16px", background: "#003087", color: "white", border: "none", borderRadius: 12, fontSize: "18px", marginBottom: 30 }}>
+        <button 
+          onClick={handleAuth}
+          style={{ width: "100%", padding: "16px", background: "#003087", color: "white", border: "none", borderRadius: 12, fontSize: "18px", marginBottom: 30 }}
+        >
           {authMode === "signup" ? "Create Account" : "Sign In"}
         </button>
 
-        <p style={{ marginTop: 20, color: "#666" }}>— OR — Quick Login</p>
+        {authError && <p style={{ color: "red" }}>{authError}</p>}
+
+        <p style={{ marginTop: 30, color: "#666" }}>— OR — Quick Login</p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 15 }}>
-          <button onClick={() => bypassLogin(true)} style={{ padding: "18px", fontSize: "18px", background: "#003087", color: "white", border: "none", borderRadius: 12 }}>👑 Admin (Full Access)</button>
-          <button onClick={() => bypassLogin(false)} style={{ padding: "18px", fontSize: "18px", background: "#1976d2", color: "white", border: "none", borderRadius: 12 }}>👷 Technician (Input Only)</button>
+          <button onClick={() => bypassLogin(true)} style={{ padding: "18px", fontSize: "18px", background: "#003087", color: "white", border: "none", borderRadius: 12 }}>
+            👑 Admin (Full Access)
+          </button>
+          <button onClick={() => bypassLogin(false)} style={{ padding: "18px", fontSize: "18px", background: "#1976d2", color: "white", border: "none", borderRadius: 12 }}>
+            👷 Technician (Input Only)
+          </button>
         </div>
       </div>
     );
@@ -151,6 +193,7 @@ export default function App() {
 
   return (
     <div style={{ padding: 20, fontFamily: "Arial", maxWidth: 1600, margin: "0 auto", background: "#f8f9fa", minHeight: "100vh" }}>
+      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 50, paddingBottom: 30, borderBottom: "6px solid #003087", gap: "40px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "25px", flex: 1 }}>
           <img src="/metro-logo.png" alt="Metro Logo" style={{ height: "90px" }} />
@@ -210,7 +253,6 @@ export default function App() {
         <div style={{ background: "#fff", borderRadius: 16, padding: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
           <h2>Saved Logs</h2>
           <ClearLogsButton />
-          <p style={{marginTop:20}}>Saved entries will appear here.</p>
         </div>
       )}
     </div>
