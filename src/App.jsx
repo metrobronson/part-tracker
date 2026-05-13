@@ -10,7 +10,6 @@ export default function App() {
   const [editingLog, setEditingLog] = useState(null);
   const [saveStatus, setSaveStatus] = useState("");
 
-  // Form fields
   const [busNumber, setBusNumber] = useState("");
   const [partName, setPartName] = useState("");
   const [modifiedPartNumber, setModifiedPartNumber] = useState("");
@@ -24,11 +23,8 @@ export default function App() {
   const [comments, setComments] = useState("");
   const [materialsUsed, setMaterialsUsed] = useState("");
 
-  // Live totals
   const hours = clockIn && clockOut ? Math.max(0, (new Date(clockOut) - new Date(clockIn)) / 1000 / 60 / 60) : 0;
-  const laborCost = hours * Number(laborRate || 0);
-  const modifiedTotal = Number(modifiedPartCost || 0) + laborCost + Number(suppliesCost || 0);
-  const savings = Number(directFitPartCost || 0) - modifiedTotal;
+  const modifiedTotal = Number(modifiedPartCost || 0) + (hours * Number(laborRate || 0)) + Number(suppliesCost || 0);
 
   const bypassLogin = (admin) => {
     setUser({ email: admin ? "gary.bronson@go-metro.com" : "tech@go-metro.com" });
@@ -110,6 +106,12 @@ export default function App() {
     setLogs(localLogs.filter(l => l.id !== id));
   }
 
+  const filteredLogs = logs.filter(log =>
+    [log.bus_number, log.part_name, log.modified_part_number].some(f => 
+      f?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  );
+
   if (!user) {
     return (
       <div style={{ padding: 40, maxWidth: 520, margin: "100px auto", textAlign: "center", fontFamily: "Arial" }}>
@@ -146,21 +148,7 @@ export default function App() {
         </div>
       </div>
 
-      {isAdmin && (
-        <div style={{ background: "#fff", borderRadius: 16, padding: 25, marginBottom: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
-          <h2>Create New User</h2>
-          <input type="email" placeholder="New User Email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 12, borderRadius: 8 }} />
-          <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 20, borderRadius: 8 }} />
-          <button onClick={async () => {
-            const { error } = await supabase.auth.signUp({ email, password });
-            alert(error ? "Error: " + error.message : "✅ User created successfully!");
-          }} style={{ padding: "12px 30px", background: "#003087", color: "white", border: "none", borderRadius: 8 }}>
-            Create New User
-          </button>
-        </div>
-      )}
-
-      {/* Form with Live Totals */}
+      {/* Form - visible to BOTH roles */}
       <div style={{ background: "#fff", borderRadius: 16, padding: 35, marginBottom: 40, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
         <h2 style={{ color: "#003087" }}>{editingLog ? "Edit Log" : "New Part Modification"}</h2>
         
@@ -191,15 +179,6 @@ export default function App() {
             <label>Materials Used</label>
             <textarea value={materialsUsed} onChange={e => setMaterialsUsed(e.target.value)} style={{width:"100%", padding:14, marginTop:8, minHeight:"110px", borderRadius:8}} />
           </div>
-        </div>
-
-        {/* Live Totals */}
-        <div style={{ marginTop: 25, padding: 20, background: "#f0f7ff", borderRadius: 12, border: "2px solid #003087" }}>
-          <h3>Live Totals</h3>
-          <p>Labor Hours: <strong>{hours.toFixed(2)}</strong> hrs</p>
-          <p>Labor Cost: <strong>${laborCost.toFixed(2)}</strong></p>
-          <p><strong>Modified Total: ${modifiedTotal.toFixed(2)}</strong></p>
-          {isAdmin && <p>Direct Fit Cost: ${directFitPartCost || 0} | Savings: <strong style={{color: savings >= 0 ? "green" : "red"}}>${savings.toFixed(2)}</strong></p>}
         </div>
 
         <div style={{marginTop:30}}>
