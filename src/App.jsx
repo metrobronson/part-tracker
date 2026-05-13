@@ -1,16 +1,23 @@
 import { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 import ClearLogsButton from './components/ClearLogsButton';
+
+const supabase = createClient(
+  "https://csxkoyobaztseyknjz.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzeGtveW9iYXp0c2V5a25qeiIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzQ2NzE5MjAwLCJleHAiOjIwNjIyOTUyMDB9"
+);
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authError, setAuthError] = useState("");
 
   const [logs, setLogs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingLog, setEditingLog] = useState(null);
   const [saveStatus, setSaveStatus] = useState("");
 
-  // Form fields
   const [busNumber, setBusNumber] = useState("");
   const [partName, setPartName] = useState("");
   const [modifiedPartNumber, setModifiedPartNumber] = useState("");
@@ -27,9 +34,10 @@ export default function App() {
   const hours = clockIn && clockOut ? Math.max(0, (new Date(clockOut) - new Date(clockIn)) / 1000 / 60 / 60) : 0;
   const modifiedTotal = Number(modifiedPartCost || 0) + (hours * Number(laborRate || 0)) + Number(suppliesCost || 0);
 
+  const isAdmin = user?.email?.includes("admin") || user?.email === "gary.bronson@go-metro.com";
+
   const bypassLogin = (admin) => {
     setUser({ email: admin ? "gary.bronson@go-metro.com" : "tech@go-metro.com" });
-    setIsAdmin(admin);
   };
 
   const signOut = () => setUser(null);
@@ -38,6 +46,12 @@ export default function App() {
     const saved = JSON.parse(localStorage.getItem("localPartLogs") || "[]");
     setLogs(saved);
   }, []);
+
+  async function handleSignUp() {
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) setAuthError(error.message);
+    else alert("✅ Check your email to confirm your account!");
+  }
 
   function startEdit(log) {
     if (!isAdmin) return;
@@ -103,10 +117,6 @@ export default function App() {
     setLogs(localLogs.filter(l => l.id !== id));
   }
 
-  const filteredLogs = logs.filter(log =>
-    [log.bus_number, log.part_name, log.modified_part_number].some(f => f?.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
   if (!user) {
     return (
       <div style={{ padding: 40, maxWidth: 520, margin: "100px auto", textAlign: "center", fontFamily: "Arial" }}>
@@ -114,14 +124,24 @@ export default function App() {
         <h1 style={{ color: "#003087", fontSize: "2.8rem", marginBottom: 10, lineHeight: 1.1 }}>Part Modification Cost Tracker</h1>
         <p style={{ fontSize: "1.35rem", color: "#555", marginBottom: 40 }}>Fleet Maintenance • Metro</p>
 
-        <h2 style={{ marginBottom: 30 }}>Choose Your Role</h2>
+        <h2 style={{ marginBottom: 20 }}>New User Sign Up</h2>
+        <input type="email" placeholder="Metro Email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 12, borderRadius: 8 }} />
+        <input type="password" placeholder="Create Password" value={password} onChange={e => setPassword(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 25, borderRadius: 8 }} />
+        <button onClick={handleSignUp} style={{ width: "100%", padding: "16px", background: "#003087", color: "white", border: "none", borderRadius: 12, fontSize: "18px", marginBottom: 40 }}>
+          Create Account
+        </button>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <button onClick={() => bypassLogin(true)} style={{ padding: "22px", fontSize: "20px", background: "#003087", color: "white", border: "none", borderRadius: 12 }}>
-            👑 Admin (Gary) - Full Access
+        {authError && <p style={{ color: "red", marginBottom: 20 }}>{authError}</p>}
+
+        <p style={{ margin: "20px 0", color: "#666" }}>— OR —</p>
+
+        <h3 style={{ marginBottom: 15 }}>Quick Login</h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <button onClick={() => bypassLogin(true)} style={{ padding: "20px", fontSize: "19px", background: "#003087", color: "white", border: "none", borderRadius: 12 }}>
+            👑 Admin - Gary (Full Access)
           </button>
-          <button onClick={() => bypassLogin(false)} style={{ padding: "22px", fontSize: "20px", background: "#1976d2", color: "white", border: "none", borderRadius: 12 }}>
-            👷 Technician - Input Only
+          <button onClick={() => bypassLogin(false)} style={{ padding: "20px", fontSize: "19px", background: "#1976d2", color: "white", border: "none", borderRadius: 12 }}>
+            👷 Technician (Input Only)
           </button>
         </div>
       </div>
@@ -144,7 +164,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Form */}
       <div style={{ background: "#fff", borderRadius: 16, padding: 35, marginBottom: 40, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
         <h2 style={{ color: "#003087" }}>{editingLog ? "Edit Log" : "New Part Modification"}</h2>
         
@@ -189,27 +208,6 @@ export default function App() {
         <div style={{ background: "#fff", borderRadius: 16, padding: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
           <h2>Saved Logs</h2>
           <ClearLogsButton />
-          <table style={{width:"100%", marginTop:20, borderCollapse:"collapse"}}>
-            <thead>
-              <tr style={{background:"#f5f5f5"}}>
-                <th style={{padding:12, textAlign:"left"}}>Bus</th>
-                <th style={{padding:12, textAlign:"left"}}>Part</th>
-                <th style={{padding:12, textAlign:"left"}}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map(log => (
-                <tr key={log.id} style={{borderTop:"1px solid #eee"}}>
-                  <td style={{padding:12}}>{log.bus_number}</td>
-                  <td style={{padding:12}}>{log.part_name}</td>
-                  <td style={{padding:12}}>
-                    <button onClick={() => startEdit(log)} style={{marginRight:12}}>✏️</button>
-                    <button onClick={() => deleteLog(log.id)} style={{color:"red"}}>🗑️</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
     </div>
