@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import ClearLogsButton from './components/ClearLogsButton';
 
 const supabase = createClient(
-  "https://csxokyoobaztsesyknjz.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzeG9reW9vYmF6dHNlc3lrbmp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0MzgzMjcsImV4cCI6MjA5MzAxNDMyN30.198J49PGCuvmu52C2-LRAWye8nd6OyvSZvmYD8zNATM"
+  "https://csxkoyobaztseyknjz.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzeGtveW9iYXp0c2V5a25qeiIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzQ2NzE5MjAwLCJleHAiOjIwNjIyOTUyMDB9"
 );
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [role, setRole] = useState(null); // null, "admin", "tech"
+  const [logs, setLogs] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [editingLog, setEditingLog] = useState(null);
+  const [saveStatus, setSaveStatus] = useState("");
 
   const [busNumber, setBusNumber] = useState("");
   const [partName, setPartName] = useState("");
@@ -23,402 +27,295 @@ export default function App() {
   const [clockOut, setClockOut] = useState("");
   const [comments, setComments] = useState("");
   const [materialsUsed, setMaterialsUsed] = useState("");
-  const [logs, setLogs] = useState([]);
 
-  const isAdmin = user?.email?.includes("admin");
-
-  function nowLocal() {
-    const d = new Date();
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-    return d.toISOString().slice(0, 16);
-  }
-
-  const hours =
-    clockIn && clockOut
-      ? Math.max(0, (new Date(clockOut) - new Date(clockIn)) / 1000 / 60 / 60)
-      : 0;
-
+  const hours = clockIn && clockOut ? Math.max(0, (new Date(clockOut) - new Date(clockIn)) / 1000 / 60 / 60) : 0;
   const laborCost = hours * Number(laborRate || 0);
-  const modifiedTotal =
-    Number(modifiedPartCost || 0) + laborCost + Number(suppliesCost || 0);
-  const directFitTotal = Number(directFitPartCost || 0);
-  const difference = modifiedTotal - directFitTotal;
+  const modifiedTotal = Number(modifiedPartCost || 0) + laborCost + Number(suppliesCost || 0);
+  const directTotal = Number(directFitPartCost || 0);
+  const savings = directTotal - modifiedTotal;
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setUser(data.user);
-        loadLogs();
-      }
-    });
+    const localLogs = JSON.parse(localStorage.getItem("localPartLogs") || "[]");
+    setLogs(localLogs);
   }, []);
 
-  async function signUp() {
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) alert(error.message);
-    else alert("Account created. Now sign in.");
+  function startEdit(log) {
+    if (role !== "admin") return;
+    setEditingLog(log);
+    setBusNumber(log.bus_number || "");
+    setPartName(log.part_name || "");
+    setModifiedPartNumber(log.modified_part_number || "");
+    setDirectFitPartNumber(log.direct_fit_part_number || "");
+    setModifiedPartCost(log.modified_part_cost || "");
+    setDirectFitPartCost(log.direct_fit_part_cost || "");
+    setLaborRate(log.labor_rate || "75");
+    setSuppliesCost(log.supplies_cost || "");
+    setClockIn(log.clock_in || "");
+    setClockOut(log.clock_out || "");
+    setComments(log.comments || "");
+    setMaterialsUsed(log.materials_used || "");
   }
 
-  async function signIn() {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) alert(error.message);
-    else {
-      setUser(data.user);
-      loadLogs();
-    }
-  }
-
-  async function signOut() {
-    await supabase.auth.signOut();
-    setUser(null);
-  }
-
-  async function loadLogs() {
-    const { data, error } = await supabase
-      .from("part_logs")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) alert(error.message);
-    else setLogs(data || []);
-  }
-
-  function startJob() {
-    setClockIn(nowLocal());
-    setClockOut("");
-  }
-
-  function finishJob() {
-    setClockOut(nowLocal());
-  }
-
-  async function saveLog() {
-    const { error } = await supabase.from("part_logs").insert({
-      tech_email: user.email,
+  function saveLog() {
+    setSaveStatus("Saving...");
+    const payload = {
+      id: editingLog ? editingLog.id : Date.now(),
       bus_number: busNumber,
       part_name: partName,
       modified_part_number: modifiedPartNumber,
       direct_fit_part_number: directFitPartNumber,
       modified_part_cost: Number(modifiedPartCost || 0),
       direct_fit_part_cost: Number(directFitPartCost || 0),
-      labor_rate: Number(laborRate || 0),
+      labor_rate: Number(laborRate),
       supplies_cost: Number(suppliesCost || 0),
+      materials_used: materialsUsed,
       clock_in: clockIn || null,
       clock_out: clockOut || null,
       comments,
-      materials_used: materialsUsed,
-    });
+      created_at: new Date().toISOString()
+    };
 
-    if (error) {
-      alert(error.message);
-      return;
+    const localLogs = JSON.parse(localStorage.getItem("localPartLogs") || "[]");
+    if (editingLog) {
+      const index = localLogs.findIndex(l => l.id === editingLog.id);
+      if (index !== -1) localLogs[index] = payload;
+    } else {
+      localLogs.unshift(payload);
     }
+    localStorage.setItem("localPartLogs", JSON.stringify(localLogs));
 
-    alert("Log saved!");
-
-    setBusNumber("");
-    setPartName("");
-    setModifiedPartNumber("");
-    setDirectFitPartNumber("");
-    setModifiedPartCost("");
-    setDirectFitPartCost("");
-    setSuppliesCost("");
-    setClockIn("");
-    setClockOut("");
-    setComments("");
-    setMaterialsUsed("");
-    loadLogs();
+    setLogs(localLogs);
+    setSaveStatus("💾 Saved locally");
+    resetForm();
+    setTimeout(() => setSaveStatus(""), 2000);
   }
 
-  async function deleteLog(id) {
-    const { error } = await supabase.from("part_logs").delete().eq("id", id);
-    if (error) alert(error.message);
-    else loadLogs();
+  function resetForm() {
+    setBusNumber(""); setPartName(""); setModifiedPartNumber(""); setDirectFitPartNumber("");
+    setModifiedPartCost(""); setDirectFitPartCost(""); setSuppliesCost(""); 
+    setClockIn(""); setClockOut(""); setComments(""); setMaterialsUsed("");
+    setEditingLog(null);
+  }
+
+  function deleteLog(id) {
+    if (role !== "admin") return;
+    if (!window.confirm("Delete this log?")) return;
+    const localLogs = JSON.parse(localStorage.getItem("localPartLogs") || "[]");
+    localStorage.setItem("localPartLogs", JSON.stringify(localLogs.filter(l => l.id !== id)));
+    setLogs(localLogs.filter(l => l.id !== id));
   }
 
   function exportCSV() {
-    const header =
-      "Bus,Tech,Part,Modified Part #,Direct-Fit Part #,Modified Part Cost,Direct-Fit Part Cost,Labor Rate,Supplies Cost,Clock In,Clock Out,Comments,Materials\n";
-
-    const rows = logs
-      .map((l) =>
-        [
-          l.bus_number,
-          l.tech_email,
-          l.part_name,
-          l.modified_part_number,
-          l.direct_fit_part_number,
-          l.modified_part_cost,
-          l.direct_fit_part_cost,
-          l.labor_rate,
-          l.supplies_cost,
-          l.clock_in,
-          l.clock_out,
-          l.comments,
-          l.materials_used,
-        ].join(",")
-      )
-      .join("\n");
+    const header = "Date,Bus,Part,Modified #,Direct #,Mod Cost,Direct Cost,Labor Hours,Labor $,Supplies,Materials,Total $,Comments\n";
+    const rows = logs.map(l => {
+      const h = ((new Date(l.clock_out || 0) - new Date(l.clock_in || 0)) / 3600000).toFixed(2);
+      const ld = (Number(l.labor_rate || 0) * Number(h)).toFixed(2);
+      const total = (Number(l.modified_part_cost || 0) + Number(l.supplies_cost || 0) + Number(ld)).toFixed(2);
+      return [
+        new Date(l.created_at).toLocaleDateString(),
+        l.bus_number || "", l.part_name || "", l.modified_part_number || "", l.direct_fit_part_number || "",
+        l.modified_part_cost || 0, l.direct_fit_part_cost || 0, h, ld, l.supplies_cost || 0, l.materials_used || "",
+        total, `"${(l.comments || "").replace(/"/g, '""')}"`
+      ].join(",");
+    }).join("\n");
 
     const blob = new Blob([header + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "part_logs.csv";
+    a.download = `Metro-Part-Logs-${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
   }
 
-  const page = {
-    padding: 16,
-    fontFamily: "Arial",
-    maxWidth: 1100,
-    margin: "0 auto",
-  };
+  const filteredLogs = logs.filter(log =>
+    [log.bus_number, log.part_name, log.modified_part_number]
+      .some(f => f?.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
-  const card = {
-    background: "#fff",
-    border: "1px solid #ddd",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 18,
-    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-  };
-
-  const grid = {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-    gap: 14,
-  };
-
-  const field = {
-    display: "flex",
-    flexDirection: "column",
-  };
-
-  const label = {
-    fontWeight: "bold",
-    marginBottom: 5,
-    fontSize: 15,
-  };
-
-  const input = {
-    padding: 12,
-    fontSize: 16,
-    borderRadius: 8,
-    border: "1px solid #aaa",
-    width: "100%",
-    boxSizing: "border-box",
-  };
-
-  const button = {
-    padding: "12px 16px",
-    fontSize: 16,
-    borderRadius: 8,
-    border: "none",
-    margin: 4,
-    cursor: "pointer",
-    background: "#222",
-    color: "#fff",
-  };
-
-  const greenButton = {
-    ...button,
-    background: "#137333",
-  };
-
-  const redButton = {
-    ...button,
-    background: "#b3261e",
-  };
-
-  const grayButton = {
-    ...button,
-    background: "#555",
+  const bypassLogin = (selectedRole) => {
+    setUser({ email: "gary.bronson@go-metro.com" });
+    setRole(selectedRole);
   };
 
   if (!user) {
     return (
-      <div style={page}>
-        <div style={card}>
-          <h1>Part Tracker Login</h1>
+      <div style={{ 
+        padding: 40, 
+        maxWidth: 520, 
+        margin: "140px auto", 
+        textAlign: "center", 
+        fontFamily: "Arial" 
+      }}>
+        <img src="/metro-logo.png" alt="Metro" style={{ height: "110px", marginBottom: 30 }} />
+        
+        <h1 style={{ 
+          color: "#003087", 
+          fontSize: "2.8rem", 
+          margin: "0 0 10px 0", 
+          lineHeight: 1.1 
+        }}>
+          Part Modification Cost Tracker
+        </h1>
+        
+        <p style={{ 
+          margin: "0 0 50px 0", 
+          fontSize: "1.35rem", 
+          color: "#555" 
+        }}>
+          Fleet Maintenance • Metro
+        </p>
 
-          <div style={field}>
-            <label style={label}>Email</label>
-            <input style={input} value={email} onChange={(e) => setEmail(e.target.value)} />
-          </div>
+        <p style={{ marginBottom: 30, fontSize: "1.2rem" }}>Select your role</p>
 
-          <br />
-
-          <div style={field}>
-            <label style={label}>Password</label>
-            <input style={input} type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          </div>
-
-          <br />
-
-          <button style={button} onClick={signIn}>Sign In</button>
-          <button style={grayButton} onClick={signUp}>Create Account</button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <button 
+            onClick={() => bypassLogin("admin")} 
+            style={{ 
+              padding: "18px", 
+              fontSize: "18px", 
+              background: "#003087", 
+              color: "white", 
+              border: "none", 
+              borderRadius: 12,
+              cursor: "pointer"
+            }}
+          >
+            Admin (Full Access)
+          </button>
+          <button 
+            onClick={() => bypassLogin("tech")} 
+            style={{ 
+              padding: "18px", 
+              fontSize: "18px", 
+              background: "#1976d2", 
+              color: "white", 
+              border: "none", 
+              borderRadius: 12,
+              cursor: "pointer"
+            }}
+          >
+            Technician (Input Only)
+          </button>
         </div>
       </div>
     );
   }
 
+  const isAdmin = role === "admin";
+
   return (
-    <div style={page}>
-      <button style={grayButton} onClick={signOut}>Sign Out</button>
-
-      <h1>Part Modification Cost Tracker</h1>
-      <p>Signed in as: {user.email}</p>
-
-      <div style={card}>
-        <h2>Tech Entry</h2>
-
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-          <button style={greenButton} onClick={startJob}>Start Job</button>
-          <button style={redButton} onClick={finishJob}>Finish Job</button>
-        </div>
-
-        <div style={grid}>
-          <div style={field}>
-            <label style={label}>Bus Number</label>
-            <input style={input} value={busNumber} onChange={(e) => setBusNumber(e.target.value)} />
-          </div>
-
-          <div style={field}>
-            <label style={label}>Part Being Replaced</label>
-            <input style={input} value={partName} onChange={(e) => setPartName(e.target.value)} />
-          </div>
-
-          <div style={field}>
-            <label style={label}>Part # Requiring Modification</label>
-            <input style={input} value={modifiedPartNumber} onChange={(e) => setModifiedPartNumber(e.target.value)} />
-          </div>
-
-          <div style={field}>
-            <label style={label}>Direct-Fit Part #</label>
-            <input style={input} value={directFitPartNumber} onChange={(e) => setDirectFitPartNumber(e.target.value)} />
-          </div>
-
-          <div style={field}>
-            <label style={label}>Modified Part Cost</label>
-            <input style={input} type="number" value={modifiedPartCost} onChange={(e) => setModifiedPartCost(e.target.value)} />
-          </div>
-
-          <div style={field}>
-            <label style={label}>Direct-Fit Part Cost</label>
-            <input style={input} type="number" value={directFitPartCost} onChange={(e) => setDirectFitPartCost(e.target.value)} />
-          </div>
-
-          <div style={field}>
-            <label style={label}>Labor Rate ($/hr)</label>
-            <input style={input} type="number" value={laborRate} onChange={(e) => setLaborRate(e.target.value)} />
-          </div>
-
-          <div style={field}>
-            <label style={label}>Supplies Cost</label>
-            <input style={input} type="number" value={suppliesCost} onChange={(e) => setSuppliesCost(e.target.value)} />
-          </div>
-
-          <div style={field}>
-            <label style={label}>Clock In</label>
-            <input style={input} type="datetime-local" value={clockIn} onChange={(e) => setClockIn(e.target.value)} />
-          </div>
-
-          <div style={field}>
-            <label style={label}>Clock Out</label>
-            <input style={input} type="datetime-local" value={clockOut} onChange={(e) => setClockOut(e.target.value)} />
+    <div style={{ padding: 20, fontFamily: "Arial", maxWidth: 1600, margin: "0 auto", background: "#f8f9fa", minHeight: "100vh" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 50, paddingBottom: 30, borderBottom: "6px solid #003087", gap: "40px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "25px", flex: 1 }}>
+          <img src="/metro-logo.png" alt="Metro Logo" style={{ height: "90px", width: "auto" }} />
+          <div>
+            <h1 style={{ margin: 0, fontSize: "2.8rem", color: "#003087", fontWeight: "bold", lineHeight: 1.05 }}>
+              Part Modification Cost Tracker
+            </h1>
+            <p style={{ margin: 5, color: "#555", fontSize: "1.35rem" }}>
+              Fleet Maintenance • Metro
+            </p>
           </div>
         </div>
-
-        <br />
-
-        <div style={field}>
-          <label style={label}>Modification Comments</label>
-          <textarea style={input} rows="4" value={comments} onChange={(e) => setComments(e.target.value)} />
-        </div>
-
-        <br />
-
-        <div style={field}>
-          <label style={label}>Materials Used</label>
-          <textarea style={input} rows="4" value={materialsUsed} onChange={(e) => setMaterialsUsed(e.target.value)} />
+        <div>
+          <span style={{ marginRight: 20 }}>Role: <strong>{isAdmin ? "Admin" : "Technician"}</strong></span>
+          <button onClick={() => setUser(null)} style={{ padding: "12px 28px", background: "#555", color: "white", border: "none", borderRadius: 8 }}>Sign Out</button>
         </div>
       </div>
 
-      <div style={card}>
-        <h2>Live Cost Comparison</h2>
-        <p>Labor Hours: {hours.toFixed(2)}</p>
-        <p>Labor Cost: ${laborCost.toFixed(2)}</p>
-        <p>Modified Part Total: ${modifiedTotal.toFixed(2)}</p>
-        <p>Direct-Fit Part Total: ${directFitTotal.toFixed(2)}</p>
+      {/* Form - Visible to Everyone */}
+      <div style={{ background: "#fff", borderRadius: 16, padding: 35, marginBottom: 40, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
+        <h2 style={{ marginTop: 0, color: "#003087" }}>{editingLog ? "Edit Log" : "New Part Modification"}</h2>
+        
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "22px" }}>
+          <div><label>Bus Number</label><input value={busNumber} onChange={e => setBusNumber(e.target.value)} style={{ width: "100%", padding: 14, marginTop: 8, borderRadius: 8 }} /></div>
+          <div><label>Part Being Replaced</label><input value={partName} onChange={e => setPartName(e.target.value)} style={{ width: "100%", padding: 14, marginTop: 8, borderRadius: 8 }} /></div>
+          <div><label>Modified Part Number</label><input value={modifiedPartNumber} onChange={e => setModifiedPartNumber(e.target.value)} style={{ width: "100%", padding: 14, marginTop: 8, borderRadius: 8 }} /></div>
 
-        <h3>
-          {difference > 0
-            ? `Modifying costs $${difference.toFixed(2)} more`
-            : `Modifying saves $${Math.abs(difference).toFixed(2)}`}
-        </h3>
+          {isAdmin && (
+            <>
+              <div><label>Direct Fit Part Number</label><input value={directFitPartNumber} onChange={e => setDirectFitPartNumber(e.target.value)} style={{ width: "100%", padding: 14, marginTop: 8, borderRadius: 8 }} /></div>
+              <div><label>Modified Part Cost ($)</label><input value={modifiedPartCost} onChange={e => setModifiedPartCost(e.target.value)} type="number" style={{ width: "100%", padding: 14, marginTop: 8, borderRadius: 8 }} /></div>
+              <div><label>Direct Fit Part Cost ($)</label><input value={directFitPartCost} onChange={e => setDirectFitPartCost(e.target.value)} type="number" style={{ width: "100%", padding: 14, marginTop: 8, borderRadius: 8 }} /></div>
+              <div><label>Labor Rate ($/hr)</label><input value={laborRate} onChange={e => setLaborRate(e.target.value)} style={{ width: "100%", padding: 14, marginTop: 8, borderRadius: 8 }} /></div>
+              <div><label>Supplies Cost ($)</label><input value={suppliesCost} onChange={e => setSuppliesCost(e.target.value)} type="number" style={{ width: "100%", padding: 14, marginTop: 8, borderRadius: 8 }} /></div>
+            </>
+          )}
 
-        <button style={greenButton} onClick={saveLog}>Save Log</button>
+          <div style={{ gridColumn: "span 2", display: "flex", gap: 20, alignItems: "flex-end" }}>
+            <div style={{ flex: 1 }}><label>Clock In</label><input type="datetime-local" value={clockIn} onChange={e => setClockIn(e.target.value)} style={{ width: "100%", padding: 14, marginTop: 8, borderRadius: 8 }} /></div>
+            <button onClick={() => setClockIn(new Date().toISOString().slice(0,16))} style={{ padding: "14px 28px", background: "#4caf50", color: "white", border: "none", borderRadius: 8, height: "52px" }}>Start Job</button>
+            <div style={{ flex: 1 }}><label>Clock Out</label><input type="datetime-local" value={clockOut} onChange={e => setClockOut(e.target.value)} style={{ width: "100%", padding: 14, marginTop: 8, borderRadius: 8 }} /></div>
+            <button onClick={() => setClockOut(new Date().toISOString().slice(0,16))} style={{ padding: "14px 28px", background: "#f44336", color: "white", border: "none", borderRadius: 8, height: "52px" }}>Finish Job</button>
+          </div>
+
+          <div style={{ gridColumn: "span 2" }}><label>Comments</label><input value={comments} onChange={e => setComments(e.target.value)} style={{ width: "100%", padding: 14, marginTop: 8, borderRadius: 8 }} /></div>
+          <div style={{ gridColumn: "span 2" }}>
+            <label>Materials Used</label>
+            <textarea value={materialsUsed} onChange={e => setMaterialsUsed(e.target.value)} placeholder="List materials used here..." style={{ width: "100%", padding: 14, marginTop: 8, minHeight: "90px", borderRadius: 8, resize: "vertical" }} />
+          </div>
+        </div>
+
+        <div style={{ marginTop: 30, display: "flex", gap: 15, alignItems: "center" }}>
+          <button onClick={saveLog} style={{ padding: "16px 40px", background: "#1976d2", color: "white", border: "none", borderRadius: 10, fontSize: "17px", fontWeight: "bold" }}>
+            {editingLog ? "Update Log" : "Save Log"}
+          </button>
+          {saveStatus && <span>{saveStatus}</span>}
+        </div>
       </div>
 
-      <div style={card}>
-        <h2>{isAdmin ? "Admin Dashboard" : "Saved Logs"}</h2>
+      {/* ADMIN ONLY - Full Saved Logs */}
+      {isAdmin && (
+        <div style={{ background: "#fff", borderRadius: 16, padding: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <h2>Saved Logs</h2>
+            <input type="text" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ padding: "10px 16px", width: "320px", borderRadius: 8, border: "1px solid #ddd" }} />
+          </div>
 
-        <button style={grayButton} onClick={loadLogs}>Refresh Logs</button>
-        {isAdmin && <button style={button} onClick={exportCSV}>Export CSV</button>}
+          <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+            <button onClick={() => window.location.reload()}>Refresh</button>
+            <button onClick={exportCSV} style={{ background: "#4caf50", color: "white" }}>Export CSV</button>
+            <ClearLogsButton />
+          </div>
 
-        <div style={{ overflowX: "auto", marginTop: 12 }}>
-          <table border="1" cellPadding="6" style={{ borderCollapse: "collapse", minWidth: 1000 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr>
-                <th>Bus</th>
-                <th>Tech</th>
-                <th>Part</th>
-                <th>Modified #</th>
-                <th>Direct-Fit #</th>
-                <th>Mod Cost</th>
-                <th>Direct Cost</th>
-                <th>Labor Rate</th>
-                <th>Supplies</th>
-                <th>Clock In</th>
-                <th>Clock Out</th>
-                <th>Comments</th>
-                <th>Materials</th>
-                {isAdmin && <th>Delete</th>}
+              <tr style={{ background: "#f5f5f5" }}>
+                <th style={{ padding: 12, textAlign: "left" }}>Bus</th>
+                <th style={{ padding: 12, textAlign: "left" }}>Part</th>
+                <th style={{ padding: 12, textAlign: "left" }}>Modified Total</th>
+                <th style={{ padding: 12, textAlign: "left" }}>Direct Cost</th>
+                <th style={{ padding: 12, textAlign: "left" }}>Difference</th>
+                <th style={{ padding: 12, textAlign: "left" }}>Actions</th>
               </tr>
             </thead>
-
             <tbody>
-              {logs.map((log) => (
-                <tr key={log.id}>
-                  <td>{log.bus_number}</td>
-                  <td>{log.tech_email}</td>
-                  <td>{log.part_name}</td>
-                  <td>{log.modified_part_number}</td>
-                  <td>{log.direct_fit_part_number}</td>
-                  <td>${Number(log.modified_part_cost || 0).toFixed(2)}</td>
-                  <td>${Number(log.direct_fit_part_cost || 0).toFixed(2)}</td>
-                  <td>${Number(log.labor_rate || 0).toFixed(2)}</td>
-                  <td>${Number(log.supplies_cost || 0).toFixed(2)}</td>
-                  <td>{log.clock_in}</td>
-                  <td>{log.clock_out}</td>
-                  <td>{log.comments}</td>
-                  <td>{log.materials_used}</td>
-                  {isAdmin && (
-                    <td>
-                      <button style={redButton} onClick={() => deleteLog(log.id)}>Delete</button>
+              {filteredLogs.map(log => {
+                const modTotal = Number(log.modified_part_cost || 0) + Number(log.supplies_cost || 0) + 
+                  (Number(log.labor_rate || 0) * ((new Date(log.clock_out || 0) - new Date(log.clock_in || 0)) / 3600000));
+                const dirTotal = Number(log.direct_fit_part_cost || 0);
+                const diff = dirTotal - modTotal;
+                return (
+                  <tr key={log.id} style={{ borderTop: "1px solid #eee" }}>
+                    <td style={{ padding: 12 }}>{log.bus_number}</td>
+                    <td style={{ padding: 12 }}>{log.part_name}</td>
+                    <td style={{ padding: 12 }}>${modTotal.toFixed(2)}</td>
+                    <td style={{ padding: 12 }}>${dirTotal.toFixed(2)}</td>
+                    <td style={{ padding: 12, color: diff >= 0 ? "green" : "red", fontWeight: "bold" }}>
+                      {diff >= 0 ? "Save $" : "+$"}{Math.abs(diff).toFixed(2)}
                     </td>
-                  )}
-                </tr>
-              ))}
+                    <td style={{ padding: 12 }}>
+                      <button onClick={() => startEdit(log)} style={{ marginRight: 12, color: "#1976d2", fontSize: "18px" }}>✏️</button>
+                      <button onClick={() => deleteLog(log.id)} style={{ color: "red", fontSize: "22px" }}>🗑️</button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
-      </div>
+      )}
     </div>
   );
 }
