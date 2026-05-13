@@ -115,7 +115,9 @@ export default function App() {
   }
 
   const filteredLogs = logs.filter(log =>
-    [log.bus_number, log.part_name, log.modified_part_number].some(f => f?.toLowerCase().includes(searchTerm.toLowerCase()))
+    [log.bus_number, log.part_name, log.modified_part_number].some(f => 
+      f?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
   );
 
   if (!user) {
@@ -126,57 +128,27 @@ export default function App() {
         <p style={{ fontSize: "1.35rem", color: "#555", marginBottom: 40 }}>Fleet Maintenance • Metro</p>
 
         <div style={{ marginBottom: 25 }}>
-          <button 
-            onClick={() => setAuthMode("signin")} 
-            style={{ marginRight: 20, fontWeight: authMode === "signin" ? "bold" : "normal", padding: "8px 16px" }}
-          >
-            Sign In
-          </button>
-          <button 
-            onClick={() => setAuthMode("signup")} 
-            style={{ fontWeight: authMode === "signup" ? "bold" : "normal", padding: "8px 16px" }}
-          >
-            Sign Up
-          </button>
+          <button onClick={() => setAuthMode("signin")} style={{ marginRight: 20, fontWeight: authMode === "signin" ? "bold" : "normal", padding: "8px 20px" }}>Sign In</button>
+          <button onClick={() => setAuthMode("signup")} style={{ fontWeight: authMode === "signup" ? "bold" : "normal", padding: "8px 20px" }}>Sign Up</button>
         </div>
 
-        <input 
-          type="email" 
-          placeholder="Metro Email" 
-          value={email} 
-          onChange={e => setEmail(e.target.value)} 
-          style={{ width: "100%", padding: 14, marginBottom: 12, borderRadius: 8 }} 
-        />
-        <input 
-          type="password" 
-          placeholder="Password" 
-          value={password} 
-          onChange={e => setPassword(e.target.value)} 
-          style={{ width: "100%", padding: 14, marginBottom: 20, borderRadius: 8 }} 
-        />
+        <input type="email" placeholder="Metro Email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 12, borderRadius: 8 }} />
+        <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 20, borderRadius: 8 }} />
 
-        <button 
-          onClick={() => {}} 
-          style={{ width: "100%", padding: "16px", background: "#003087", color: "white", border: "none", borderRadius: 12, fontSize: "18px", marginBottom: 30 }}
-        >
+        <button style={{ width: "100%", padding: "16px", background: "#003087", color: "white", border: "none", borderRadius: 12, fontSize: "18px", marginBottom: 30 }}>
           {authMode === "signup" ? "Create Account" : "Sign In"}
         </button>
 
         <p style={{ marginTop: 20, color: "#666" }}>— OR — Quick Login</p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 15, marginTop: 15 }}>
-          <button onClick={() => bypassLogin(true)} style={{ padding: "18px", fontSize: "18px", background: "#003087", color: "white", border: "none", borderRadius: 12 }}>
-            👑 Admin (Full Access)
-          </button>
-          <button onClick={() => bypassLogin(false)} style={{ padding: "18px", fontSize: "18px", background: "#1976d2", color: "white", border: "none", borderRadius: 12 }}>
-            👷 Technician (Input Only)
-          </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 15 }}>
+          <button onClick={() => bypassLogin(true)} style={{ padding: "18px", fontSize: "18px", background: "#003087", color: "white", border: "none", borderRadius: 12 }}>👑 Admin (Full Access)</button>
+          <button onClick={() => bypassLogin(false)} style={{ padding: "18px", fontSize: "18px", background: "#1976d2", color: "white", border: "none", borderRadius: 12 }}>👷 Technician (Input Only)</button>
         </div>
       </div>
     );
   }
 
-  // Main App (same as before)
   return (
     <div style={{ padding: 20, fontFamily: "Arial", maxWidth: 1600, margin: "0 auto", background: "#f8f9fa", minHeight: "100vh" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 50, paddingBottom: 30, borderBottom: "6px solid #003087", gap: "40px" }}>
@@ -193,16 +165,54 @@ export default function App() {
         </div>
       </div>
 
-      {/* Form and logs table here - same as previous full version */}
+      {/* Form */}
       <div style={{ background: "#fff", borderRadius: 16, padding: 35, marginBottom: 40, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
         <h2 style={{ color: "#003087" }}>{editingLog ? "Edit Log" : "New Part Modification"}</h2>
-        {/* Form grid - abbreviated for space, but working */}
-        <button onClick={saveLog} style={{ marginTop: 20, padding: "16px 40px", background: "#1976d2", color: "white", border: "none", borderRadius: 10 }}>
-          Save Log
-        </button>
+        
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "22px" }}>
+          <div><label>Bus Number</label><input value={busNumber} onChange={e => setBusNumber(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+          <div><label>Part Being Replaced</label><input value={partName} onChange={e => setPartName(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+          <div><label>Modified Part Number</label><input value={modifiedPartNumber} onChange={e => setModifiedPartNumber(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+
+          {isAdmin && (
+            <>
+              <div><label>Direct Fit Part Number</label><input value={directFitPartNumber} onChange={e => setDirectFitPartNumber(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+              <div><label>Modified Part Cost ($)</label><input type="number" value={modifiedPartCost} onChange={e => setModifiedPartCost(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+              <div><label>Direct Fit Part Cost ($)</label><input type="number" value={directFitPartCost} onChange={e => setDirectFitPartCost(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+              <div><label>Labor Rate ($/hr)</label><input value={laborRate} onChange={e => setLaborRate(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+              <div><label>Supplies Cost ($)</label><input type="number" value={suppliesCost} onChange={e => setSuppliesCost(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+            </>
+          )}
+
+          <div style={{gridColumn: "span 2", display: "flex", gap: 20, alignItems: "flex-end"}}>
+            <div style={{flex:1}}><label>Clock In</label><input type="datetime-local" value={clockIn} onChange={e => setClockIn(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+            <button onClick={() => setClockIn(new Date().toISOString().slice(0,16))} style={{padding:"14px 28px", background:"#4caf50", color:"white", border:"none", borderRadius:8}}>Start Job</button>
+            <div style={{flex:1}}><label>Clock Out</label><input type="datetime-local" value={clockOut} onChange={e => setClockOut(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+            <button onClick={() => setClockOut(new Date().toISOString().slice(0,16))} style={{padding:"14px 28px", background:"#f44336", color:"white", border:"none", borderRadius:8}}>Finish Job</button>
+          </div>
+
+          <div style={{gridColumn:"span 2"}}><label>Comments</label><input value={comments} onChange={e => setComments(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+          <div style={{gridColumn:"span 2"}}>
+            <label>Materials Used</label>
+            <textarea value={materialsUsed} onChange={e => setMaterialsUsed(e.target.value)} style={{width:"100%", padding:14, marginTop:8, minHeight:"100px", borderRadius:8}} />
+          </div>
+        </div>
+
+        <div style={{marginTop:30}}>
+          <button onClick={saveLog} style={{padding:"16px 40px", background:"#1976d2", color:"white", border:"none", borderRadius:10, fontSize:"17px"}}>
+            {editingLog ? "Update Log" : "Save Log"}
+          </button>
+          {saveStatus && <span style={{marginLeft:20}}>{saveStatus}</span>}
+        </div>
       </div>
 
-      {isAdmin && <div><h2>Saved Logs (Admin Only)</h2><ClearLogsButton /></div>}
+      {isAdmin && (
+        <div style={{ background: "#fff", borderRadius: 16, padding: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
+          <h2>Saved Logs</h2>
+          <ClearLogsButton />
+          <p style={{marginTop:20}}>Saved entries will appear here.</p>
+        </div>
+      )}
     </div>
   );
 }
