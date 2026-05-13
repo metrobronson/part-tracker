@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 import ClearLogsButton from './components/ClearLogsButton';
+
+const supabase = createClient(
+  "https://csxkoyobaztseyknjz.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzeGtveW9iYXp0c2V5a25qeiIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzQ2NzE5MjAwLCJleHAiOjIwNjIyOTUyMDB9"
+);
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -9,6 +15,11 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingLog, setEditingLog] = useState(null);
   const [saveStatus, setSaveStatus] = useState("");
+
+  // New User Creation (Admin only)
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [createStatus, setCreateStatus] = useState("");
 
   const [busNumber, setBusNumber] = useState("");
   const [partName, setPartName] = useState("");
@@ -24,7 +35,9 @@ export default function App() {
   const [materialsUsed, setMaterialsUsed] = useState("");
 
   const hours = clockIn && clockOut ? Math.max(0, (new Date(clockOut) - new Date(clockIn)) / 1000 / 60 / 60) : 0;
-  const modifiedTotal = Number(modifiedPartCost || 0) + (hours * Number(laborRate || 0)) + Number(suppliesCost || 0);
+  const laborCost = hours * Number(laborRate || 0);
+  const modifiedTotal = Number(modifiedPartCost || 0) + laborCost + Number(suppliesCost || 0);
+  const savings = Number(directFitPartCost || 0) - modifiedTotal;
 
   const bypassLogin = (admin) => {
     setUser({ email: admin ? "gary.bronson@go-metro.com" : "tech@go-metro.com" });
@@ -41,6 +54,20 @@ export default function App() {
   useEffect(() => {
     loadLogs();
   }, []);
+
+  async function createNewUser() {
+    if (!newUserEmail || !newUserPassword) return;
+    setCreateStatus("Creating...");
+    const { error } = await supabase.auth.signUp({ email: newUserEmail, password: newUserPassword });
+    if (error) {
+      setCreateStatus("❌ " + error.message);
+    } else {
+      setCreateStatus("✅ User created! They can sign in now.");
+      setNewUserEmail("");
+      setNewUserPassword("");
+    }
+    setTimeout(() => setCreateStatus(""), 4000);
+  }
 
   function startEdit(log) {
     if (!isAdmin) return;
@@ -85,8 +112,7 @@ export default function App() {
       localLogs.unshift(payload);
     }
     localStorage.setItem("localPartLogs", JSON.stringify(localLogs));
-    
-    setLogs(localLogs);           // Update immediately
+    setLogs(localLogs);
     setSaveStatus("💾 Saved locally");
     resetForm();
     setTimeout(() => setSaveStatus(""), 1500);
@@ -149,7 +175,22 @@ export default function App() {
         </div>
       </div>
 
-      {/* Form - visible to all */}
+      {/* Admin: Create New User */}
+      {isAdmin && (
+        <div style={{ background: "#fff", borderRadius: 16, padding: 25, marginBottom: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
+          <h2>Create New User</h2>
+          <input type="email" placeholder="New User Email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 12, borderRadius: 8 }} />
+          <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 20, borderRadius: 8 }} />
+          <button onClick={async () => {
+            const { error } = await supabase.auth.signUp({ email, password });
+            alert(error ? "Error: " + error.message : "✅ New user created successfully!");
+          }} style={{ padding: "12px 30px", background: "#003087", color: "white", border: "none", borderRadius: 8 }}>
+            Create New User
+          </button>
+        </div>
+      )}
+
+      {/* Form */}
       <div style={{ background: "#fff", borderRadius: 16, padding: 35, marginBottom: 40, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
         <h2 style={{ color: "#003087" }}>{editingLog ? "Edit Log" : "New Part Modification"}</h2>
         
@@ -192,35 +233,40 @@ export default function App() {
 
       {isAdmin && (
         <div style={{ background: "#fff", borderRadius: 16, padding: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
-          <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:15}}>
-            <h2>Saved Logs</h2>
-            <button onClick={loadLogs} style={{padding:"8px 16px"}}>Refresh Logs</button>
-          </div>
+          <h2>Saved Logs</h2>
           <ClearLogsButton />
-
           <table style={{width:"100%", marginTop:20, borderCollapse:"collapse"}}>
             <thead>
               <tr style={{background:"#f5f5f5"}}>
                 <th style={{padding:12, textAlign:"left"}}>Date</th>
                 <th style={{padding:12, textAlign:"left"}}>Bus</th>
                 <th style={{padding:12, textAlign:"left"}}>Part</th>
-                <th style={{padding:12, textAlign:"left"}}>Modified #</th>
+                <th style={{padding:12, textAlign:"left"}}>Modified Total</th>
+                <th style={{padding:12, textAlign:"left"}}>Savings</th>
                 <th style={{padding:12, textAlign:"left"}}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredLogs.map(log => (
-                <tr key={log.id} style={{borderTop:"1px solid #eee"}}>
-                  <td style={{padding:12}}>{new Date(log.created_at).toLocaleDateString()}</td>
-                  <td style={{padding:12}}>{log.bus_number}</td>
-                  <td style={{padding:12}}>{log.part_name}</td>
-                  <td style={{padding:12}}>{log.modified_part_number}</td>
-                  <td style={{padding:12}}>
-                    <button onClick={() => startEdit(log)} style={{marginRight:12}}>✏️</button>
-                    <button onClick={() => deleteLog(log.id)} style={{color:"red"}}>🗑️</button>
-                  </td>
-                </tr>
-              ))}
+              {filteredLogs.map(log => {
+                const modTotal = Number(log.modified_part_cost || 0) + Number(log.supplies_cost || 0) + (Number(log.labor_rate || 0) * ((new Date(log.clock_out || 0) - new Date(log.clock_in || 0)) / 3600000));
+                const dirTotal = Number(log.direct_fit_part_cost || 0);
+                const sav = dirTotal - modTotal;
+                return (
+                  <tr key={log.id} style={{borderTop:"1px solid #eee"}}>
+                    <td style={{padding:12}}>{new Date(log.created_at).toLocaleDateString()}</td>
+                    <td style={{padding:12}}>{log.bus_number}</td>
+                    <td style={{padding:12}}>{log.part_name}</td>
+                    <td style={{padding:12}}>${modTotal.toFixed(2)}</td>
+                    <td style={{padding:12, color: sav >= 0 ? "green" : "red", fontWeight: "bold"}}>
+                      {sav >= 0 ? "Save $" : ""}${Math.abs(sav).toFixed(2)}
+                    </td>
+                    <td style={{padding:12}}>
+                      <button onClick={() => startEdit(log)} style={{marginRight:12}}>✏️</button>
+                      <button onClick={() => deleteLog(log.id)} style={{color:"red"}}>🗑️</button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
