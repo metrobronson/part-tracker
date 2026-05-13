@@ -33,9 +33,13 @@ export default function App() {
 
   const signOut = () => setUser(null);
 
-  useEffect(() => {
+  const loadLogs = () => {
     const saved = JSON.parse(localStorage.getItem("localPartLogs") || "[]");
     setLogs(saved);
+  };
+
+  useEffect(() => {
+    loadLogs();
   }, []);
 
   function startEdit(log) {
@@ -82,7 +86,7 @@ export default function App() {
     }
     localStorage.setItem("localPartLogs", JSON.stringify(localLogs));
     setLogs(localLogs);
-    setSaveStatus("💾 Saved locally");
+    setSaveStatus("✅ Saved!");
     resetForm();
     setTimeout(() => setSaveStatus(""), 1500);
   }
@@ -101,6 +105,12 @@ export default function App() {
     localStorage.setItem("localPartLogs", JSON.stringify(localLogs.filter(l => l.id !== id)));
     setLogs(localLogs.filter(l => l.id !== id));
   }
+
+  const filteredLogs = logs.filter(log =>
+    [log.bus_number, log.part_name, log.modified_part_number].some(f => 
+      f?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  );
 
   if (!user) {
     return (
@@ -138,7 +148,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* Form - visible to both */}
+      {/* Form */}
       <div style={{ background: "#fff", borderRadius: 16, padding: 35, marginBottom: 40, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
         <h2 style={{ color: "#003087" }}>{editingLog ? "Edit Log" : "New Part Modification"}</h2>
         
@@ -181,8 +191,32 @@ export default function App() {
 
       {isAdmin && (
         <div style={{ background: "#fff", borderRadius: 16, padding: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
-          <h2>Saved Logs</h2>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15 }}>
+            <h2>Saved Logs</h2>
+            <button onClick={loadLogs} style={{ padding: "8px 16px" }}>Refresh Logs</button>
+          </div>
           <ClearLogsButton />
+          <table style={{width:"100%", marginTop:20, borderCollapse:"collapse"}}>
+            <thead>
+              <tr style={{background:"#f5f5f5"}}>
+                <th style={{padding:12, textAlign:"left"}}>Bus</th>
+                <th style={{padding:12, textAlign:"left"}}>Part</th>
+                <th style={{padding:12, textAlign:"left"}}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredLogs.map(log => (
+                <tr key={log.id} style={{borderTop:"1px solid #eee"}}>
+                  <td style={{padding:12}}>{log.bus_number}</td>
+                  <td style={{padding:12}}>{log.part_name}</td>
+                  <td style={{padding:12}}>
+                    <button onClick={() => startEdit(log)} style={{marginRight:12}}>✏️</button>
+                    <button onClick={() => deleteLog(log.id)} style={{color:"red"}}>🗑️</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
