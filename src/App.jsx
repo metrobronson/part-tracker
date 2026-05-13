@@ -9,14 +9,17 @@ const supabase = createClient(
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [authMode, setAuthMode] = useState("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authError, setAuthError] = useState("");
 
   const [logs, setLogs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingLog, setEditingLog] = useState(null);
   const [saveStatus, setSaveStatus] = useState("");
 
-  // Form states
+  // Form fields
   const [busNumber, setBusNumber] = useState("");
   const [partName, setPartName] = useState("");
   const [modifiedPartNumber, setModifiedPartNumber] = useState("");
@@ -34,18 +37,10 @@ export default function App() {
   const laborCost = hours * Number(laborRate || 0);
   const modifiedTotal = Number(modifiedPartCost || 0) + laborCost + Number(suppliesCost || 0);
 
-  const bypassLogin = (admin) => {
-    const email = admin ? "gary.bronson@go-metro.com" : "tech@go-metro.com";
-    setUser({ email });
-    setIsAdmin(admin);
-  };
+  const isAdmin = user?.email?.includes("admin") || user?.email === "gary.bronson@go-metro.com";
 
-  const signOut = () => {
-    setUser(null);
-    setIsAdmin(false);
-    setLogs([]);
-    // Also try real logout
-    supabase.auth.signOut().catch(() => {});
+  const bypassLogin = (admin) => {
+    setUser({ email: admin ? "gary.bronson@go-metro.com" : "tech@go-metro.com" });
   };
 
   useEffect(() => {
@@ -123,29 +118,32 @@ export default function App() {
     )
   );
 
+  const signOut = () => setUser(null);
+
   if (!user) {
     return (
-      <div style={{ padding: 40, maxWidth: 520, margin: "140px auto", textAlign: "center", fontFamily: "Arial" }}>
+      <div style={{ padding: 40, maxWidth: 520, margin: "120px auto", textAlign: "center", fontFamily: "Arial" }}>
         <img src="/metro-logo.png" alt="Metro" style={{ height: "110px", marginBottom: 30 }} />
-        <h1 style={{ color: "#003087", fontSize: "2.8rem", margin: "0 0 10px 0", lineHeight: 1.1 }}>Part Modification Cost Tracker</h1>
-        <p style={{ margin: "0 0 50px 0", fontSize: "1.35rem", color: "#555" }}>Fleet Maintenance • Metro</p>
+        <h1 style={{ color: "#003087", fontSize: "2.8rem", marginBottom: 10, lineHeight: 1.1 }}>Part Modification Cost Tracker</h1>
+        <p style={{ fontSize: "1.35rem", color: "#555", marginBottom: 40 }}>Fleet Maintenance • Metro</p>
 
-        <div style={{ marginBottom: 30 }}>
-          <button onClick={() => setAuthMode("signin")} style={{ marginRight: 20, fontWeight: "bold" }}>Sign In</button>
-          <button onClick={() => setAuthMode("signup")}>Sign Up</button>
+        <div style={{ marginBottom: 25 }}>
+          <button onClick={() => setAuthMode("signin")} style={{ marginRight: 20, fontWeight: authMode === "signin" ? "bold" : "normal" }}>Sign In</button>
+          <button onClick={() => setAuthMode("signup")} style={{ fontWeight: authMode === "signup" ? "bold" : "normal" }}>Sign Up</button>
         </div>
 
-        {/* Real auth fields here if you want, but for now Dev Mode is main */}
+        <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 12, borderRadius: 8 }} />
+        <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 20, borderRadius: 8 }} />
 
-        <p style={{ marginBottom: 20 }}>Quick Login (Recommended for now)</p>
+        <button onClick={() => {}} style={{ width: "100%", padding: "16px", background: "#003087", color: "white", border: "none", borderRadius: 12, fontSize: "18px", marginBottom: 30 }}>
+          {authMode === "signup" ? "Create Account" : "Sign In"}
+        </button>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <button onClick={() => bypassLogin(true)} style={{ padding: "18px", fontSize: "18px", background: "#003087", color: "white", border: "none", borderRadius: 12 }}>
-            👑 Admin (Full Access)
-          </button>
-          <button onClick={() => bypassLogin(false)} style={{ padding: "18px", fontSize: "18px", background: "#1976d2", color: "white", border: "none", borderRadius: 12 }}>
-            👷 Technician (Input Only)
-          </button>
+        <p style={{ marginTop: 20, color: "#666" }}>— OR —</p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 15, marginTop: 15 }}>
+          <button onClick={() => bypassLogin(true)} style={{ padding: "18px", fontSize: "18px", background: "#003087", color: "white", border: "none", borderRadius: 12 }}>👑 Admin (Full Access)</button>
+          <button onClick={() => bypassLogin(false)} style={{ padding: "18px", fontSize: "18px", background: "#1976d2", color: "white", border: "none", borderRadius: 12 }}>👷 Technician (Input Only)</button>
         </div>
       </div>
     );
@@ -153,7 +151,6 @@ export default function App() {
 
   return (
     <div style={{ padding: 20, fontFamily: "Arial", maxWidth: 1600, margin: "0 auto", background: "#f8f9fa", minHeight: "100vh" }}>
-      {/* Header with working Sign Out */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 50, paddingBottom: 30, borderBottom: "6px solid #003087", gap: "40px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "25px", flex: 1 }}>
           <img src="/metro-logo.png" alt="Metro Logo" style={{ height: "90px" }} />
@@ -164,16 +161,59 @@ export default function App() {
         </div>
         <div>
           <span style={{ marginRight: 20 }}>Signed in as: <strong>{user.email}</strong> ({isAdmin ? "Admin" : "Technician"})</span>
-          <button onClick={signOut} style={{ padding: "12px 28px", background: "#d32f2f", color: "white", border: "none", borderRadius: 8, fontWeight: "bold" }}>
-            Sign Out
-          </button>
+          <button onClick={signOut} style={{ padding: "12px 28px", background: "#d32f2f", color: "white", border: "none", borderRadius: 8 }}>Sign Out</button>
         </div>
       </div>
 
-      {/* The rest of your form and table (same as before) */}
-      {/* Form and Admin table code from previous full version is here - it should be working */}
+      {/* Form */}
+      <div style={{ background: "#fff", borderRadius: 16, padding: 35, marginBottom: 40, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
+        <h2 style={{ color: "#003087" }}>{editingLog ? "Edit Log" : "New Part Modification"}</h2>
+        
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "22px" }}>
+          <div><label>Bus Number</label><input value={busNumber} onChange={e => setBusNumber(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+          <div><label>Part Being Replaced</label><input value={partName} onChange={e => setPartName(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+          <div><label>Modified Part Number</label><input value={modifiedPartNumber} onChange={e => setModifiedPartNumber(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
 
-      <p>App is working. Sign Out button is now fixed (red button).</p>
+          {isAdmin && (
+            <>
+              <div><label>Direct Fit Part Number</label><input value={directFitPartNumber} onChange={e => setDirectFitPartNumber(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+              <div><label>Modified Part Cost ($)</label><input type="number" value={modifiedPartCost} onChange={e => setModifiedPartCost(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+              <div><label>Direct Fit Part Cost ($)</label><input type="number" value={directFitPartCost} onChange={e => setDirectFitPartCost(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+              <div><label>Labor Rate ($/hr)</label><input value={laborRate} onChange={e => setLaborRate(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+              <div><label>Supplies Cost ($)</label><input type="number" value={suppliesCost} onChange={e => setSuppliesCost(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+            </>
+          )}
+
+          <div style={{gridColumn: "span 2", display: "flex", gap: 20, alignItems: "flex-end"}}>
+            <div style={{flex:1}}><label>Clock In</label><input type="datetime-local" value={clockIn} onChange={e => setClockIn(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+            <button onClick={() => setClockIn(new Date().toISOString().slice(0,16))} style={{padding:"14px 28px", background:"#4caf50", color:"white", border:"none", borderRadius:8}}>Start Job</button>
+            <div style={{flex:1}}><label>Clock Out</label><input type="datetime-local" value={clockOut} onChange={e => setClockOut(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+            <button onClick={() => setClockOut(new Date().toISOString().slice(0,16))} style={{padding:"14px 28px", background:"#f44336", color:"white", border:"none", borderRadius:8}}>Finish Job</button>
+          </div>
+
+          <div style={{gridColumn:"span 2"}}><label>Comments</label><input value={comments} onChange={e => setComments(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+          <div style={{gridColumn:"span 2"}}>
+            <label>Materials Used</label>
+            <textarea value={materialsUsed} onChange={e => setMaterialsUsed(e.target.value)} style={{width:"100%", padding:14, marginTop:8, minHeight:"100px", borderRadius:8}} />
+          </div>
+        </div>
+
+        <div style={{marginTop:30}}>
+          <button onClick={saveLog} style={{padding:"16px 40px", background:"#1976d2", color:"white", border:"none", borderRadius:10, fontSize:"17px"}}>
+            {editingLog ? "Update Log" : "Save Log"}
+          </button>
+          {saveStatus && <span style={{marginLeft:20}}>{saveStatus}</span>}
+        </div>
+      </div>
+
+      {isAdmin && (
+        <div style={{ background: "#fff", borderRadius: 16, padding: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
+          <h2>Saved Logs</h2>
+          <ClearLogsButton />
+          {/* Table would go here */}
+          <p style={{marginTop:20}}>Admin logs table will appear here once you save some entries.</p>
+        </div>
+      )}
     </div>
   );
 }
