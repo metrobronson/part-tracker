@@ -1,17 +1,9 @@
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import ClearLogsButton from './components/ClearLogsButton';
-
-const supabase = createClient(
-  "https://csxkoyobaztseyknjz.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzeGtveW9iYXp0c2V5a25qeiIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzQ2NzE5MjAwLCJleHAiOjIwNjIyOTUyMDB9"
-);
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [authError, setAuthError] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [logs, setLogs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,24 +26,21 @@ export default function App() {
   const hours = clockIn && clockOut ? Math.max(0, (new Date(clockOut) - new Date(clockIn)) / 1000 / 60 / 60) : 0;
   const modifiedTotal = Number(modifiedPartCost || 0) + (hours * Number(laborRate || 0)) + Number(suppliesCost || 0);
 
-  const isAdmin = user?.email?.includes("admin") || user?.email === "gary.bronson@go-metro.com";
-
   const bypassLogin = (admin) => {
     setUser({ email: admin ? "gary.bronson@go-metro.com" : "tech@go-metro.com" });
+    setIsAdmin(admin);
   };
 
   const signOut = () => setUser(null);
 
-  useEffect(() => {
+  const loadLogs = () => {
     const saved = JSON.parse(localStorage.getItem("localPartLogs") || "[]");
     setLogs(saved);
-  }, []);
+  };
 
-  async function handleSignUp() {
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) setAuthError(error.message);
-    else alert("✅ Check your email to confirm your account!");
-  }
+  useEffect(() => {
+    loadLogs();
+  }, []);
 
   function startEdit(log) {
     if (!isAdmin) return;
@@ -127,11 +116,8 @@ export default function App() {
         <h2 style={{ marginBottom: 20 }}>New User Sign Up</h2>
         <input type="email" placeholder="Metro Email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 12, borderRadius: 8 }} />
         <input type="password" placeholder="Create Password" value={password} onChange={e => setPassword(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 25, borderRadius: 8 }} />
-        <button 
-          onClick={handleSignUp} 
-          style={{ width: "100%", padding: "16px", background: "#003087", color: "white", border: "none", borderRadius: 12, fontSize: "18px", marginBottom: 40 }}
-        >
-          Create Account
+        <button style={{ width: "100%", padding: "16px", background: "#666", color: "white", border: "none", borderRadius: 12, fontSize: "18px", marginBottom: 40, cursor: "not-allowed" }}>
+          Create Account (Temporarily Disabled)
         </button>
 
         <h3 style={{ marginBottom: 20 }}>Quick Login</h3>
