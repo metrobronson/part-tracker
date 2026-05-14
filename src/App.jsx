@@ -14,7 +14,6 @@ export default function App() {
   const [authError, setAuthError] = useState("");
 
   const [logs, setLogs] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [editingLog, setEditingLog] = useState(null);
   const [saveStatus, setSaveStatus] = useState("");
 
@@ -51,23 +50,6 @@ export default function App() {
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) setAuthError(error.message);
     else alert("✅ Check your email to confirm your account!");
-  }
-
-  function startEdit(log) {
-    if (!isAdmin) return;
-    setEditingLog(log);
-    setBusNumber(log.bus_number || "");
-    setPartName(log.part_name || "");
-    setModifiedPartNumber(log.modified_part_number || "");
-    setDirectFitPartNumber(log.direct_fit_part_number || "");
-    setModifiedPartCost(log.modified_part_cost || "");
-    setDirectFitPartCost(log.direct_fit_part_cost || "");
-    setLaborRate(log.labor_rate || "75");
-    setSuppliesCost(log.supplies_cost || "");
-    setClockIn(log.clock_in || "");
-    setClockOut(log.clock_out || "");
-    setComments(log.comments || "");
-    setMaterialsUsed(log.materials_used || "");
   }
 
   function saveLog() {
@@ -107,14 +89,6 @@ export default function App() {
     setModifiedPartCost(""); setDirectFitPartCost(""); setSuppliesCost("");
     setClockIn(""); setClockOut(""); setComments(""); setMaterialsUsed("");
     setEditingLog(null);
-  }
-
-  function deleteLog(id) {
-    if (!isAdmin) return;
-    if (!window.confirm("Delete this log?")) return;
-    const localLogs = JSON.parse(localStorage.getItem("localPartLogs") || "[]");
-    localStorage.setItem("localPartLogs", JSON.stringify(localLogs.filter(l => l.id !== id)));
-    setLogs(localLogs.filter(l => l.id !== id));
   }
 
   if (!user) {
