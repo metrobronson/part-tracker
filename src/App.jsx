@@ -29,9 +29,13 @@ export default function App() {
 
   const signOut = () => setUser(null);
 
-  useEffect(() => {
+  const loadLogs = () => {
     const saved = JSON.parse(localStorage.getItem("localPartLogs") || "[]");
     setLogs(saved);
+  };
+
+  useEffect(() => {
+    loadLogs();
   }, []);
 
   function saveLog() {
@@ -60,8 +64,8 @@ export default function App() {
       localLogs.unshift(payload);
     }
     localStorage.setItem("localPartLogs", JSON.stringify(localLogs));
-    setLogs(localLogs);
-    setSaveStatus("💾 Saved locally");
+    setLogs([...localLogs]); // Force re-render
+    setSaveStatus("💾 Saved!");
     resetForm();
     setTimeout(() => setSaveStatus(""), 1500);
   }
@@ -73,6 +77,14 @@ export default function App() {
     setEditingLog(null);
   }
 
+  function deleteLog(id) {
+    if (!isAdmin) return;
+    if (!window.confirm("Delete?")) return;
+    const localLogs = JSON.parse(localStorage.getItem("localPartLogs") || "[]");
+    localStorage.setItem("localPartLogs", JSON.stringify(localLogs.filter(l => l.id !== id)));
+    setLogs(localLogs.filter(l => l.id !== id));
+  }
+
   if (!user) {
     return (
       <div style={{ padding: 40, maxWidth: 520, margin: "100px auto", textAlign: "center", fontFamily: "Arial" }}>
@@ -81,7 +93,7 @@ export default function App() {
         <p style={{ fontSize: "1.35rem", color: "#555", marginBottom: 40 }}>Fleet Maintenance • Metro</p>
 
         <h2 style={{ marginBottom: 20 }}>New User Sign Up</h2>
-        <button onClick={() => alert("Sign Up coming soon - use Quick Login for now")} style={{ width: "100%", padding: "16px", background: "#003087", color: "white", border: "none", borderRadius: 12, fontSize: "18px", marginBottom: 40 }}>
+        <button onClick={() => alert("Sign Up coming soon - use Quick Login")} style={{ width: "100%", padding: "16px", background: "#003087", color: "white", border: "none", borderRadius: 12, fontSize: "18px", marginBottom: 40 }}>
           Create Account
         </button>
 
@@ -156,8 +168,36 @@ export default function App() {
 
       {isAdmin && (
         <div style={{ background: "#fff", borderRadius: 16, padding: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
-          <h2>Saved Logs (Admin Only)</h2>
+          <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:15}}>
+            <h2>Saved Logs</h2>
+            <button onClick={loadLogs} style={{padding:"8px 16px"}}>Refresh Logs</button>
+          </div>
           <ClearLogsButton />
+          <table style={{width:"100%", marginTop:20, borderCollapse:"collapse"}}>
+            <thead>
+              <tr style={{background:"#f5f5f5"}}>
+                <th style={{padding:12, textAlign:"left"}}>Date</th>
+                <th style={{padding:12, textAlign:"left"}}>Bus</th>
+                <th style={{padding:12, textAlign:"left"}}>Part</th>
+                <th style={{padding:12, textAlign:"left"}}>Modified #</th>
+                <th style={{padding:12, textAlign:"left"}}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map(log => (
+                <tr key={log.id} style={{borderTop:"1px solid #eee"}}>
+                  <td style={{padding:12}}>{new Date(log.created_at).toLocaleDateString()}</td>
+                  <td style={{padding:12}}>{log.bus_number}</td>
+                  <td style={{padding:12}}>{log.part_name}</td>
+                  <td style={{padding:12}}>{log.modified_part_number}</td>
+                  <td style={{padding:12}}>
+                    <button onClick={() => startEdit(log)} style={{marginRight:12}}>✏️</button>
+                    <button onClick={() => deleteLog(log.id)} style={{color:"red"}}>🗑️</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
