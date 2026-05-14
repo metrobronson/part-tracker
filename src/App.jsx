@@ -25,6 +25,7 @@ export default function App() {
 
   const hours = clockIn && clockOut ? Math.max(0, (new Date(clockOut) - new Date(clockIn)) / 1000 / 60 / 60) : 0;
   const modifiedTotal = Number(modifiedPartCost || 0) + (hours * Number(laborRate || 0)) + Number(suppliesCost || 0);
+  const savings = Number(directFitPartCost || 0) - modifiedTotal;
 
   const bypassLogin = (admin) => {
     setUser({ email: admin ? "gary.bronson@go-metro.com" : "tech@go-metro.com" });
@@ -106,11 +107,25 @@ export default function App() {
     setLogs(localLogs.filter(l => l.id !== id));
   }
 
-  const filteredLogs = logs.filter(log =>
-    [log.bus_number, log.part_name, log.modified_part_number].some(f => 
-      f?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+  function exportCSV() {
+    if (logs.length === 0) {
+      alert("No logs to export");
+      return;
+    }
+    const headers = "Date,Bus,Part,Modified Part #,Direct Fit #,Modified Cost,Direct Cost,Labor Rate,Supplies,MATERIALS,Clock In,Clock Out,Comments\n";
+    const rows = logs.map(log => {
+      const date = new Date(log.created_at).toLocaleDateString();
+      return `"${date}","${log.bus_number || ''}","${log.part_name || ''}","${log.modified_part_number || ''}","${log.direct_fit_part_number || ''}",${log.modified_part_cost || 0},${log.direct_fit_part_cost || 0},${log.labor_rate || 0},${log.supplies_cost || 0},"${log.materials_used || ''}","${log.clock_in || ''}","${log.clock_out || ''}","${log.comments || ''}"`;
+    }).join("\n");
+
+    const csv = headers + rows;
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "part-logs.csv";
+    a.click();
+  }
 
   if (!user) {
     return (
@@ -195,29 +210,56 @@ export default function App() {
 
       {isAdmin && (
         <div style={{ background: "#fff", borderRadius: 16, padding: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
-          <h2>Saved Logs</h2>
+          <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:15}}>
+            <h2>Saved Logs</h2>
+            <div>
+              <button onClick={loadLogs} style={{padding:"8px 16px", marginRight:10}}>Refresh</button>
+              <button onClick={() => {
+                const csv = "Date,Bus,Part,Modified #,Direct #,Modified Cost,Direct Cost,Labor Rate,Supplies,Materials,Clock In,Clock Out,Comments\n" +
+                  logs.map(log => `${new Date(log.created_at).toLocaleDateString()},${log.bus_number},${log.part_name},${log.modified_part_number},${log.direct_fit_part_number},${log.modified_part_cost},${log.direct_fit_part_cost},${log.labor_rate},${log.supplies_cost},"${log.materials_used || ''}",${log.clock_in},${log.clock_out},"${log.comments || ''}"`).join("\n");
+                const blob = new Blob([csv], { type: "text/csv" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "part-logs.csv";
+                a.click();
+              }} style={{padding:"8px 16px", background:"#28a745", color:"white", border:"none", borderRadius:8}}>Export CSV</button>
+            </div>
+          </div>
           <ClearLogsButton />
+
           <table style={{width:"100%", marginTop:20, borderCollapse:"collapse"}}>
             <thead>
               <tr style={{background:"#f5f5f5"}}>
                 <th style={{padding:12, textAlign:"left"}}>Date</th>
                 <th style={{padding:12, textAlign:"left"}}>Bus</th>
                 <th style={{padding:12, textAlign:"left"}}>Part</th>
+                <th style={{padding:12, textAlign:"left"}}>Modified #</th>
+                <th style={{padding:12, textAlign:"left"}}>Modified Total</th>
+                <th style={{padding:12, textAlign:"left"}}>Savings</th>
                 <th style={{padding:12, textAlign:"left"}}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {logs.map(log => (
-                <tr key={log.id} style={{borderTop:"1px solid #eee"}}>
-                  <td style={{padding:12}}>{new Date(log.created_at).toLocaleDateString()}</td>
-                  <td style={{padding:12}}>{log.bus_number}</td>
-                  <td style={{padding:12}}>{log.part_name}</td>
-                  <td style={{padding:12}}>
-                    <button onClick={() => startEdit(log)} style={{marginRight:12}}>✏️ Edit</button>
-                    <button onClick={() => deleteLog(log.id)} style={{color:"red"}}>🗑️</button>
-                  </td>
-                </tr>
-              ))}
+              {logs.map(log => {
+                const modTotal = Number(log.modified_part_cost || 0) + Number(log.supplies_cost || 0) + (Number(log.labor_rate || 0) * hours);
+                const dirTotal = Number(log.direct_fit_part_cost || 0);
+                const sav = dirTotal - modTotal;
+                return (
+                  <tr key={log.id} style={{borderTop:"1px solid #eee"}}>
+                    <td style={{padding:12}}>{new Date(log.created_at).toLocaleDateString()}</td>
+                    <td style={{padding:12}}>{log.bus_number}</td>
+                    <td style={{padding:12}}>{log.part_name}</td>
+                    <td style={{padding:12}}>{log.modified_part_number}</td>
+                    <td style={{padding:12}}>${modTotal.toFixed(2)}</td>
+                    <td style={{padding:12, color: sav >= 0 ? "green" : "red", fontWeight: "bold"}}>${sav.toFixed(2)}</td>
+                    <td style={{padding:12}}>
+                      <button onClick={() => startEdit(log)} style={{marginRight:12}}>✏️</button>
+                      <button onClick={() => deleteLog(log.id)} style={{color:"red"}}>🗑️</button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
