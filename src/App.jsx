@@ -113,23 +113,103 @@ export default function App() {
   );
 
   if (!user) {
-    return (
-      <div style={{ padding: 40, maxWidth: 520, margin: "100px auto", textAlign: "center", fontFamily: "Arial" }}>
-        <img src="/metro-logo.png" alt="Metro" style={{ height: "110px", marginBottom: 30 }} />
-        <h1 style={{ color: "#003087", fontSize: "2.8rem", marginBottom: 10, lineHeight: 1.1 }}>Part Modification Cost Tracker</h1>
-        <p style={{ fontSize: "1.35rem", color: "#555", marginBottom: 40 }}>Fleet Maintenance • Metro</p>
+  return (
+    <div
+      style={{
+        padding: 40,
+        maxWidth: 520,
+        margin: "100px auto",
+        textAlign: "center",
+        fontFamily: "Arial"
+      }}
+    >
+      <img
+        src="/metro-logo.png"
+        alt="Metro"
+        style={{ height: "110px", marginBottom: 30 }}
+      />
 
-        <h2 style={{ marginBottom: 25 }}>Select Role</h2>
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <button onClick={() => bypassLogin(true)} style={{ padding: "22px", fontSize: "20px", background: "#003087", color: "white", border: "none", borderRadius: 12 }}>
-            👑 Admin - Gary (Full Access)
-          </button>
-          <button onClick={() => bypassLogin(false)} style={{ padding: "22px", fontSize: "20px", background: "#1976d2", color: "white", border: "none", borderRadius: 12 }}>
-            👷 Technician (Input Only)
-          </button>
-        </div>
+      <h1
+        style={{
+          color: "#003087",
+          fontSize: "2.8rem",
+          marginBottom: 10,
+          lineHeight: 1.1
+        }}
+      >
+        Part Modification Cost Tracker
+      </h1>
+
+      <p
+        style={{
+          fontSize: "1.35rem",
+          color: "#555",
+          marginBottom: 40
+        }}
+      >
+        Fleet Maintenance • Metro
+      </p>
+
+      <h2 style={{ marginBottom: 25 }}>Select Role</h2>
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 20
+        }}
+      >
+        {/* ADMIN BUTTON */}
+        <button
+          onClick={() => bypassLogin(true)}
+          style={{
+            padding: "22px",
+            fontSize: "20px",
+            background: "#003087",
+            color: "white",
+            border: "none",
+            borderRadius: 12,
+            cursor: "pointer"
+          }}
+        >
+          👑 Admin - Gary (Full Access)
+        </button>
+
+        {/* TECH LOGIN BUTTON */}
+        <button
+          onClick={() => bypassLogin(false)}
+          style={{
+            padding: "22px",
+            fontSize: "20px",
+            background: "#1976d2",
+            color: "white",
+            border: "none",
+            borderRadius: 12,
+            cursor: "pointer"
+          }}
+        >
+          👷 Technician (Input Only)
+        </button>
+
+        {/* NEW TECH SIGNUP BUTTON */}
+        <button
+          onClick={() => alert("Technician signup coming soon")}
+          style={{
+            padding: "22px",
+            fontSize: "20px",
+            background: "#43a047",
+            color: "white",
+            border: "none",
+            borderRadius: 12,
+            cursor: "pointer"
+          }}
+        >
+          📝 Technician Sign Up
+        </button>
       </div>
-    );
+    </div>
+  );
+}
   }
 
   return (
