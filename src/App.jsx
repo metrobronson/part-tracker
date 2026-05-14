@@ -1,11 +1,5 @@
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import ClearLogsButton from './components/ClearLogsButton';
-
-const supabase = createClient(
-  "https://csxkoyobaztseyknjz.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzeGtveW9iYXp0c2V5a25qeiIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzQ2NzE5MjAwLCJleHAiOjIwNjIyOTUyMDB9"
-);
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -46,12 +40,6 @@ export default function App() {
     setLogs(saved);
   }, []);
 
-  async function handleSignUp() {
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) setAuthError(error.message);
-    else alert("✅ Check your email to confirm your account!");
-  }
-
   function saveLog() {
     const payload = {
       id: editingLog ? editingLog.id : Date.now(),
@@ -91,6 +79,14 @@ export default function App() {
     setEditingLog(null);
   }
 
+  function deleteLog(id) {
+    if (!isAdmin) return;
+    if (!window.confirm("Delete this log?")) return;
+    const localLogs = JSON.parse(localStorage.getItem("localPartLogs") || "[]");
+    localStorage.setItem("localPartLogs", JSON.stringify(localLogs.filter(l => l.id !== id)));
+    setLogs(localLogs.filter(l => l.id !== id));
+  }
+
   if (!user) {
     return (
       <div style={{ padding: 40, maxWidth: 520, margin: "100px auto", textAlign: "center", fontFamily: "Arial" }}>
@@ -102,7 +98,7 @@ export default function App() {
         <input type="email" placeholder="Metro Email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 12, borderRadius: 8 }} />
         <input type="password" placeholder="Create Password" value={password} onChange={e => setPassword(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 25, borderRadius: 8 }} />
         <button 
-          onClick={handleSignUp} 
+          onClick={() => alert("Sign Up coming soon - use Quick Login for now")}
           style={{ width: "100%", padding: "16px", background: "#003087", color: "white", border: "none", borderRadius: 12, fontSize: "18px", marginBottom: 40 }}
         >
           Create Account
