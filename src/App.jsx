@@ -3,11 +3,10 @@ import ClearLogsButton from './components/ClearLogsButton';
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [authError, setAuthError] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [logs, setLogs] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [editingLog, setEditingLog] = useState(null);
   const [saveStatus, setSaveStatus] = useState("");
 
@@ -27,18 +26,38 @@ export default function App() {
   const hours = clockIn && clockOut ? Math.max(0, (new Date(clockOut) - new Date(clockIn)) / 1000 / 60 / 60) : 0;
   const modifiedTotal = Number(modifiedPartCost || 0) + (hours * Number(laborRate || 0)) + Number(suppliesCost || 0);
 
-  const isAdmin = user?.email?.includes("admin") || user?.email === "gary.bronson@go-metro.com";
-
   const bypassLogin = (admin) => {
     setUser({ email: admin ? "gary.bronson@go-metro.com" : "tech@go-metro.com" });
+    setIsAdmin(admin);
   };
 
   const signOut = () => setUser(null);
 
-  useEffect(() => {
+  const loadLogs = () => {
     const saved = JSON.parse(localStorage.getItem("localPartLogs") || "[]");
     setLogs(saved);
+  };
+
+  useEffect(() => {
+    loadLogs();
   }, []);
+
+  function startEdit(log) {
+    if (!isAdmin) return;
+    setEditingLog(log);
+    setBusNumber(log.bus_number || "");
+    setPartName(log.part_name || "");
+    setModifiedPartNumber(log.modified_part_number || "");
+    setDirectFitPartNumber(log.direct_fit_part_number || "");
+    setModifiedPartCost(log.modified_part_cost || "");
+    setDirectFitPartCost(log.direct_fit_part_cost || "");
+    setLaborRate(log.labor_rate || "75");
+    setSuppliesCost(log.supplies_cost || "");
+    setClockIn(log.clock_in || "");
+    setClockOut(log.clock_out || "");
+    setComments(log.comments || "");
+    setMaterialsUsed(log.materials_used || "");
+  }
 
   function saveLog() {
     const payload = {
@@ -66,7 +85,7 @@ export default function App() {
       localLogs.unshift(payload);
     }
     localStorage.setItem("localPartLogs", JSON.stringify(localLogs));
-    setLogs(localLogs);
+    setLogs([...localLogs]); // Force update
     setSaveStatus("💾 Saved locally");
     resetForm();
     setTimeout(() => setSaveStatus(""), 1500);
@@ -97,10 +116,7 @@ export default function App() {
         <h2 style={{ marginBottom: 20 }}>New User Sign Up</h2>
         <input type="email" placeholder="Metro Email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 12, borderRadius: 8 }} />
         <input type="password" placeholder="Create Password" value={password} onChange={e => setPassword(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 25, borderRadius: 8 }} />
-        <button 
-          onClick={() => alert("Sign Up coming soon - use Quick Login for now")}
-          style={{ width: "100%", padding: "16px", background: "#003087", color: "white", border: "none", borderRadius: 12, fontSize: "18px", marginBottom: 40 }}
-        >
+        <button onClick={() => alert("Sign Up coming soon - use Quick Login for now")} style={{ width: "100%", padding: "16px", background: "#003087", color: "white", border: "none", borderRadius: 12, fontSize: "18px", marginBottom: 40 }}>
           Create Account
         </button>
 
@@ -175,8 +191,36 @@ export default function App() {
 
       {isAdmin && (
         <div style={{ background: "#fff", borderRadius: 16, padding: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
-          <h2>Saved Logs (Admin Only)</h2>
+          <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15}}>
+            <h2>Saved Logs</h2>
+            <button onClick={loadLogs} style={{padding: "8px 16px"}}>Refresh Logs</button>
+          </div>
           <ClearLogsButton />
+          <table style={{width:"100%", marginTop:20, borderCollapse:"collapse"}}>
+            <thead>
+              <tr style={{background:"#f5f5f5"}}>
+                <th style={{padding:12, textAlign:"left"}}>Date</th>
+                <th style={{padding:12, textAlign:"left"}}>Bus</th>
+                <th style={{padding:12, textAlign:"left"}}>Part</th>
+                <th style={{padding:12, textAlign:"left"}}>Modified #</th>
+                <th style={{padding:12, textAlign:"left"}}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map(log => (
+                <tr key={log.id} style={{borderTop:"1px solid #eee"}}>
+                  <td style={{padding:12}}>{new Date(log.created_at).toLocaleDateString()}</td>
+                  <td style={{padding:12}}>{log.bus_number}</td>
+                  <td style={{padding:12}}>{log.part_name}</td>
+                  <td style={{padding:12}}>{log.modified_part_number}</td>
+                  <td style={{padding:12}}>
+                    <button onClick={() => startEdit(log)} style={{marginRight:12}}>✏️</button>
+                    <button onClick={() => deleteLog(log.id)} style={{color:"red"}}>🗑️</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
