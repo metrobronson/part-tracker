@@ -113,15 +113,8 @@ export default function App() {
         <h1 style={{ color: "#003087", fontSize: "2.8rem", marginBottom: 10, lineHeight: 1.1 }}>Part Modification Cost Tracker</h1>
         <p style={{ fontSize: "1.35rem", color: "#555", marginBottom: 40 }}>Fleet Maintenance • Metro</p>
 
-        <h2 style={{ marginBottom: 20 }}>New User Sign Up</h2>
-        <input type="email" placeholder="Metro Email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 12, borderRadius: 8 }} />
-        <input type="password" placeholder="Create Password" value={password} onChange={e => setPassword(e.target.value)} style={{ width: "100%", padding: 14, marginBottom: 25, borderRadius: 8 }} />
-        <button style={{ width: "100%", padding: "16px", background: "#666", color: "white", border: "none", borderRadius: 12, fontSize: "18px", marginBottom: 40, cursor: "not-allowed" }}>
-          Create Account (Temporarily Disabled)
-        </button>
-
-        <h3 style={{ marginBottom: 20 }}>Quick Login</h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <h2 style={{ marginBottom: 25 }}>Select Role</h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <button onClick={() => bypassLogin(true)} style={{ padding: "22px", fontSize: "20px", background: "#003087", color: "white", border: "none", borderRadius: 12 }}>
             👑 Admin - Gary (Full Access)
           </button>
@@ -191,7 +184,7 @@ export default function App() {
 
       {isAdmin && (
         <div style={{ background: "#fff", borderRadius: 16, padding: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
-          <h2>Saved Logs (Admin Only)</h2>
+          <h2>Saved Logs</h2>
           <ClearLogsButton />
         </div>
       )}
