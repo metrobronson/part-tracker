@@ -38,23 +38,6 @@ export default function App() {
     loadLogs();
   }, []);
 
-  function startEdit(log) {
-    if (!isAdmin) return;
-    setEditingLog(log);
-    setBusNumber(log.bus_number || "");
-    setPartName(log.part_name || "");
-    setModifiedPartNumber(log.modified_part_number || "");
-    setDirectFitPartNumber(log.direct_fit_part_number || "");
-    setModifiedPartCost(log.modified_part_cost || "");
-    setDirectFitPartCost(log.direct_fit_part_cost || "");
-    setLaborRate(log.labor_rate || "75");
-    setSuppliesCost(log.supplies_cost || "");
-    setClockIn(log.clock_in || "");
-    setClockOut(log.clock_out || "");
-    setComments(log.comments || "");
-    setMaterialsUsed(log.materials_used || "");
-  }
-
   function saveLog() {
     const payload = {
       id: editingLog ? editingLog.id : Date.now(),
@@ -73,18 +56,21 @@ export default function App() {
       created_at: new Date().toISOString()
     };
 
-    const localLogs = JSON.parse(localStorage.getItem("localPartLogs") || "[]");
+    let localLogs = JSON.parse(localStorage.getItem("localPartLogs") || "[]");
+    
     if (editingLog) {
       const index = localLogs.findIndex(l => l.id === editingLog.id);
       if (index !== -1) localLogs[index] = payload;
     } else {
       localLogs.unshift(payload);
     }
+
     localStorage.setItem("localPartLogs", JSON.stringify(localLogs));
-    setLogs(localLogs);
-    setSaveStatus("💾 Saved locally");
+    setLogs([...localLogs]);   // Force update
+    setSaveStatus("💾 Saved successfully!");
     resetForm();
-    setTimeout(() => setSaveStatus(""), 1500);
+
+    setTimeout(() => setSaveStatus(""), 2000);
   }
 
   function resetForm() {
@@ -143,7 +129,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* FORM - VISIBLE TO BOTH TECH AND ADMIN */}
       <div style={{ background: "#fff", borderRadius: 16, padding: 35, marginBottom: 40, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
         <h2 style={{ color: "#003087" }}>{editingLog ? "Edit Log" : "New Part Modification"}</h2>
         
@@ -180,14 +165,42 @@ export default function App() {
           <button onClick={saveLog} style={{padding:"16px 40px", background:"#1976d2", color:"white", border:"none", borderRadius:10, fontSize:"17px"}}>
             {editingLog ? "Update Log" : "Save Log"}
           </button>
-          {saveStatus && <span style={{marginLeft:20}}>{saveStatus}</span>}
+          {saveStatus && <span style={{marginLeft:20, color: "green"}}>{saveStatus}</span>}
         </div>
       </div>
 
       {isAdmin && (
         <div style={{ background: "#fff", borderRadius: 16, padding: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
-          <h2>Saved Logs (Admin Only)</h2>
+          <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15}}>
+            <h2>Saved Logs</h2>
+            <button onClick={loadLogs} style={{padding: "8px 16px"}}>Refresh Logs</button>
+          </div>
           <ClearLogsButton />
+          <table style={{width:"100%", marginTop:20, borderCollapse:"collapse"}}>
+            <thead>
+              <tr style={{background:"#f5f5f5"}}>
+                <th style={{padding:12, textAlign:"left"}}>Date</th>
+                <th style={{padding:12, textAlign:"left"}}>Bus</th>
+                <th style={{padding:12, textAlign:"left"}}>Part</th>
+                <th style={{padding:12, textAlign:"left"}}>Modified #</th>
+                <th style={{padding:12, textAlign:"left"}}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map(log => (
+                <tr key={log.id} style={{borderTop:"1px solid #eee"}}>
+                  <td style={{padding:12}}>{new Date(log.created_at).toLocaleDateString()}</td>
+                  <td style={{padding:12}}>{log.bus_number}</td>
+                  <td style={{padding:12}}>{log.part_name}</td>
+                  <td style={{padding:12}}>{log.modified_part_number}</td>
+                  <td style={{padding:12}}>
+                    <button onClick={() => startEdit(log)} style={{marginRight:12}}>✏️</button>
+                    <button onClick={() => deleteLog(log.id)} style={{color:"red"}}>🗑️</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
