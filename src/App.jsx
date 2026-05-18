@@ -22,9 +22,6 @@ export default function App() {
   const [comments, setComments] = useState("");
   const [materialsUsed, setMaterialsUsed] = useState("");
 
-  const hours = clockIn && clockOut ? Math.max(0, (new Date(clockOut) - new Date(clockIn)) / 1000 / 60 / 60) : 0;
-  const modifiedTotal = Number(modifiedPartCost || 0) + (hours * Number(laborRate || 0)) + Number(suppliesCost || 0);
-
   const bypassLogin = (admin) => {
     setUser({ email: admin ? "gary.bronson@go-metro.com" : "tech@go-metro.com" });
     setIsAdmin(admin);
@@ -105,39 +102,6 @@ export default function App() {
     setLogs(localLogs.filter(l => l.id !== id));
   }
 
-  function exportCSV() {
-    if (logs.length === 0) {
-      alert("No logs to export");
-      return;
-    }
-    const headers = "Date,Bus Number,Part Name,Modified Part Number,Direct Fit Part Number,Modified Part Cost,Direct Fit Part Cost,Labor Rate,Supplies Cost,Materials Used,Clock In,Clock Out,Comments\n";
-    const rows = logs.map(log => {
-      return [
-        new Date(log.created_at).toLocaleString(),
-        log.bus_number || "",
-        log.part_name || "",
-        log.modified_part_number || "",
-        log.direct_fit_part_number || "",
-        log.modified_part_cost || 0,
-        log.direct_fit_part_cost || 0,
-        log.labor_rate || 0,
-        log.supplies_cost || 0,
-        `"${(log.materials_used || "").replace(/"/g, '""')}"`,
-        log.clock_in || "",
-        log.clock_out || "",
-        `"${(log.comments || "").replace(/"/g, '""')}"`
-      ].join(",");
-    }).join("\n");
-
-    const csvContent = headers + rows;
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `part-logs-${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
-  }
-
   if (!user) {
     return (
       <div style={{ padding: 40, maxWidth: 520, margin: "100px auto", textAlign: "center", fontFamily: "Arial" }}>
@@ -179,56 +143,51 @@ export default function App() {
         </div>
       </div>
 
-      {/* Form */}
+      {/* FORM - VISIBLE TO BOTH TECH AND ADMIN */}
       <div style={{ background: "#fff", borderRadius: 16, padding: 35, marginBottom: 40, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
         <h2 style={{ color: "#003087" }}>{editingLog ? "Edit Log" : "New Part Modification"}</h2>
-        {/* ... full form fields here (same as before) ... */}
+        
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "22px" }}>
+          <div><label>Bus Number</label><input value={busNumber} onChange={e => setBusNumber(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+          <div><label>Part Being Replaced</label><input value={partName} onChange={e => setPartName(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+          <div><label>Modified Part Number</label><input value={modifiedPartNumber} onChange={e => setModifiedPartNumber(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+
+          {isAdmin && (
+            <>
+              <div><label>Direct Fit Part Number</label><input value={directFitPartNumber} onChange={e => setDirectFitPartNumber(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+              <div><label>Modified Part Cost ($)</label><input type="number" value={modifiedPartCost} onChange={e => setModifiedPartCost(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+              <div><label>Direct Fit Part Cost ($)</label><input type="number" value={directFitPartCost} onChange={e => setDirectFitPartCost(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+              <div><label>Labor Rate ($/hr)</label><input value={laborRate} onChange={e => setLaborRate(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+              <div><label>Supplies Cost ($)</label><input type="number" value={suppliesCost} onChange={e => setSuppliesCost(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+            </>
+          )}
+
+          <div style={{gridColumn: "span 2", display: "flex", gap: 20, alignItems: "flex-end"}}>
+            <div style={{flex:1}}><label>Clock In</label><input type="datetime-local" value={clockIn} onChange={e => setClockIn(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+            <button onClick={() => setClockIn(new Date().toISOString().slice(0,16))} style={{padding:"14px 28px", background:"#4caf50", color:"white", border:"none", borderRadius:8}}>Start Job</button>
+            <div style={{flex:1}}><label>Clock Out</label><input type="datetime-local" value={clockOut} onChange={e => setClockOut(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+            <button onClick={() => setClockOut(new Date().toISOString().slice(0,16))} style={{padding:"14px 28px", background:"#f44336", color:"white", border:"none", borderRadius:8}}>Finish Job</button>
+          </div>
+
+          <div style={{gridColumn:"span 2"}}><label>Comments</label><input value={comments} onChange={e => setComments(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+          <div style={{gridColumn:"span 2"}}>
+            <label>Materials Used</label>
+            <textarea value={materialsUsed} onChange={e => setMaterialsUsed(e.target.value)} style={{width:"100%", padding:14, marginTop:8, minHeight:"110px", borderRadius:8}} />
+          </div>
+        </div>
+
         <div style={{marginTop:30}}>
-          <button onClick={saveLog} style={{padding:"16px 40px", background:"#1976d2", color:"white", border:"none", borderRadius:10, fontSize:"17px", marginRight:15}}>
+          <button onClick={saveLog} style={{padding:"16px 40px", background:"#1976d2", color:"white", border:"none", borderRadius:10, fontSize:"17px"}}>
             {editingLog ? "Update Log" : "Save Log"}
           </button>
-          {saveStatus && <span>{saveStatus}</span>}
+          {saveStatus && <span style={{marginLeft:20}}>{saveStatus}</span>}
         </div>
       </div>
 
       {isAdmin && (
         <div style={{ background: "#fff", borderRadius: 16, padding: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15 }}>
-            <h2>Saved Logs</h2>
-            <div>
-              <button onClick={loadLogs} style={{padding:"8px 16px", marginRight:10}}>Refresh</button>
-              <button onClick={exportCSV} style={{padding:"8px 16px", background:"#28a745", color:"white", border:"none", borderRadius:8}}>
-                📥 Export CSV
-              </button>
-            </div>
-          </div>
+          <h2>Saved Logs (Admin Only)</h2>
           <ClearLogsButton />
-          {/* Table with all data */}
-          <table style={{width:"100%", marginTop:20, borderCollapse:"collapse"}}>
-            <thead>
-              <tr style={{background:"#f5f5f5"}}>
-                <th style={{padding:12}}>Date</th>
-                <th style={{padding:12}}>Bus</th>
-                <th style={{padding:12}}>Part</th>
-                <th style={{padding:12}}>Modified #</th>
-                <th style={{padding:12}}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map(log => (
-                <tr key={log.id} style={{borderTop:"1px solid #eee"}}>
-                  <td style={{padding:12}}>{new Date(log.created_at).toLocaleString()}</td>
-                  <td style={{padding:12}}>{log.bus_number}</td>
-                  <td style={{padding:12}}>{log.part_name}</td>
-                  <td style={{padding:12}}>{log.modified_part_number}</td>
-                  <td style={{padding:12}}>
-                    <button onClick={() => startEdit(log)} style={{marginRight:12}}>✏️</button>
-                    <button onClick={() => deleteLog(log.id)} style={{color:"red"}}>🗑️</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
     </div>
