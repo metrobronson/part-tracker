@@ -38,6 +38,36 @@ export default function App() {
     loadLogs();
   }, []);
 
+  // Eastern Time helper
+  const getEasternTime = () => {
+    return new Date().toLocaleString('en-CA', { 
+      timeZone: 'America/New_York',
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit', 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    }).replace(',', '');
+  };
+
+  function startEdit(log) {
+    if (!isAdmin) return;
+    setEditingLog(log);
+    setBusNumber(log.bus_number || "");
+    setPartName(log.part_name || "");
+    setModifiedPartNumber(log.modified_part_number || "");
+    setDirectFitPartNumber(log.direct_fit_part_number || "");
+    setModifiedPartCost(log.modified_part_cost || "");
+    setDirectFitPartCost(log.direct_fit_part_cost || "");
+    setLaborRate(log.labor_rate || "75");
+    setSuppliesCost(log.supplies_cost || "");
+    setClockIn(log.clock_in || "");
+    setClockOut(log.clock_out || "");
+    setComments(log.comments || "");
+    setMaterialsUsed(log.materials_used || "");
+  }
+
   function saveLog() {
     const payload = {
       id: editingLog ? editingLog.id : Date.now(),
@@ -65,7 +95,7 @@ export default function App() {
     }
     localStorage.setItem("localPartLogs", JSON.stringify(localLogs));
     setLogs(localLogs);
-    setSaveStatus("💾 Saved!");
+    setSaveStatus("💾 Saved successfully!");
     resetForm();
     setTimeout(() => setSaveStatus(""), 2000);
   }
@@ -83,6 +113,39 @@ export default function App() {
     const localLogs = JSON.parse(localStorage.getItem("localPartLogs") || "[]");
     localStorage.setItem("localPartLogs", JSON.stringify(localLogs.filter(l => l.id !== id)));
     setLogs(localLogs.filter(l => l.id !== id));
+  }
+
+  function exportCSV() {
+    if (logs.length === 0) {
+      alert("No logs to export");
+      return;
+    }
+
+    const headers = "Date,Bus Number,Part Name,Modified Part Number,Direct Fit Part Number,Modified Part Cost,Direct Fit Part Cost,Labor Rate,Supplies Cost,Materials Used,Clock In,Clock Out,Comments\n";
+    
+    const rows = logs.map(log => [
+      new Date(log.created_at).toLocaleString(),
+      `"${log.bus_number || ''}"`,
+      `"${log.part_name || ''}"`,
+      `"${log.modified_part_number || ''}"`,
+      `"${log.direct_fit_part_number || ''}"`,
+      log.modified_part_cost || 0,
+      log.direct_fit_part_cost || 0,
+      log.labor_rate || 0,
+      log.supplies_cost || 0,
+      `"${(log.materials_used || "").replace(/"/g, '""')}"`,
+      `"${log.clock_in || ''}"`,
+      `"${log.clock_out || ''}"`,
+      `"${(log.comments || "").replace(/"/g, '""')}"`
+    ].join(","));
+
+    const csv = headers + rows.join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "part-logs.csv";
+    a.click();
   }
 
   if (!user) {
@@ -145,10 +208,10 @@ export default function App() {
           )}
 
           <div style={{gridColumn: "span 2", display: "flex", gap: 20, alignItems: "flex-end"}}>
-            <div style={{flex:1}}><label>Clock In</label><input type="datetime-local" value={clockIn} onChange={e => setClockIn(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
-            <button onClick={() => setClockIn(new Date().toISOString().slice(0,16))} style={{padding:"14px 28px", background:"#4caf50", color:"white", border:"none", borderRadius:8}}>Start Job</button>
-            <div style={{flex:1}}><label>Clock Out</label><input type="datetime-local" value={clockOut} onChange={e => setClockOut(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
-            <button onClick={() => setClockOut(new Date().toISOString().slice(0,16))} style={{padding:"14px 28px", background:"#f44336", color:"white", border:"none", borderRadius:8}}>Finish Job</button>
+            <div style={{flex:1}}><label>Clock In (Eastern)</label><input type="datetime-local" value={clockIn} onChange={e => setClockIn(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+            <button onClick={() => setClockIn(new Date().toLocaleString('en-CA', { timeZone: 'America/New_York' }).slice(0,16))} style={{padding:"14px 28px", background:"#4caf50", color:"white", border:"none", borderRadius:8}}>Start Job</button>
+            <div style={{flex:1}}><label>Clock Out (Eastern)</label><input type="datetime-local" value={clockOut} onChange={e => setClockOut(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+            <button onClick={() => setClockOut(new Date().toLocaleString('en-CA', { timeZone: 'America/New_York' }).slice(0,16))} style={{padding:"14px 28px", background:"#f44336", color:"white", border:"none", borderRadius:8}}>Finish Job</button>
           </div>
 
           <div style={{gridColumn:"span 2"}}><label>Comments</label><input value={comments} onChange={e => setComments(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
@@ -168,8 +231,38 @@ export default function App() {
 
       {isAdmin && (
         <div style={{ background: "#fff", borderRadius: 16, padding: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
-          <h2>Saved Logs</h2>
+          <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15}}>
+            <h2>Saved Logs</h2>
+            <button onClick={exportCSV} style={{padding:"8px 20px", background:"#28a745", color:"white", border:"none", borderRadius:8}}>
+              📥 Export CSV
+            </button>
+          </div>
           <ClearLogsButton />
+          <table style={{width:"100%", marginTop:20, borderCollapse:"collapse"}}>
+            <thead>
+              <tr style={{background:"#f5f5f5"}}>
+                <th style={{padding:12}}>Date</th>
+                <th style={{padding:12}}>Bus</th>
+                <th style={{padding:12}}>Part</th>
+                <th style={{padding:12}}>Modified #</th>
+                <th style={{padding:12}}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map(log => (
+                <tr key={log.id} style={{borderTop:"1px solid #eee"}}>
+                  <td style={{padding:12}}>{new Date(log.created_at).toLocaleDateString()}</td>
+                  <td style={{padding:12}}>{log.bus_number}</td>
+                  <td style={{padding:12}}>{log.part_name}</td>
+                  <td style={{padding:12}}>{log.modified_part_number}</td>
+                  <td style={{padding:12}}>
+                    <button onClick={() => startEdit(log)} style={{marginRight:12}}>✏️</button>
+                    <button onClick={() => deleteLog(log.id)} style={{color:"red"}}>🗑️</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
