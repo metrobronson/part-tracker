@@ -107,7 +107,7 @@ export default function App() {
       alert("No logs to export");
       return;
     }
-    const headers = "Date,Bus,Part,Modified #,Direct #,Mod Cost,Direct Cost,Labor Rate,Supplies,Materials,Clock In,Clock Out,Comments\n";
+    const headers = "Date,Bus Number,Part Name,Modified Part Number,Direct Fit Part Number,Modified Part Cost,Direct Fit Part Cost,Labor Rate,Supplies Cost,Materials Used,Clock In,Clock Out,Comments\n";
     const rows = logs.map(log => [
       new Date(log.created_at).toLocaleString(),
       log.bus_number || "",
@@ -207,10 +207,10 @@ export default function App() {
         </div>
 
         <div style={{marginTop:30}}>
-          <button onClick={saveLog} style={{padding:"16px 40px", background:"#1976d2", color:"white", border:"none", borderRadius:10, fontSize:"17px", marginRight:15}}>
+          <button onClick={saveLog} style={{padding:"16px 40px", background:"#1976d2", color:"white", border:"none", borderRadius:10, fontSize:"17px"}}>
             {editingLog ? "Update Log" : "Save Log"}
           </button>
-          {saveStatus && <span style={{color: "green"}}>{saveStatus}</span>}
+          {saveStatus && <span style={{marginLeft:20, color:"green"}}>{saveStatus}</span>}
         </div>
       </div>
 
@@ -218,39 +218,11 @@ export default function App() {
         <div style={{ background: "#fff", borderRadius: 16, padding: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
           <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15}}>
             <h2>Saved Logs</h2>
-            <button onClick={() => {
-              if (logs.length === 0) {
-                alert("No logs to export");
-                return;
-              }
-              const csv = "Date,Bus,Part,Modified #,Direct #,Mod Cost,Direct Cost,Labor,Supplies,Materials,Clock In,Clock Out,Comments\n" +
-                logs.map(log => [
-                  new Date(log.created_at).toLocaleString(),
-                  log.bus_number || "",
-                  log.part_name || "",
-                  log.modified_part_number || "",
-                  log.direct_fit_part_number || "",
-                  log.modified_part_cost || 0,
-                  log.direct_fit_part_cost || 0,
-                  log.labor_rate || 0,
-                  log.supplies_cost || 0,
-                  `"${(log.materials_used || "").replace(/"/g, '""')}"`,
-                  log.clock_in || "",
-                  log.clock_out || "",
-                  `"${(log.comments || "").replace(/"/g, '""')}"`
-                ].join(",")).join("\n");
-              const blob = new Blob([csv], { type: "text/csv" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = "part-logs.csv";
-              a.click();
-            }} style={{padding:"8px 20px", background:"#28a745", color:"white", border:"none", borderRadius:8}}>
+            <button onClick={exportCSV} style={{padding:"8px 20px", background:"#28a745", color:"white", border:"none", borderRadius:8}}>
               📥 Export CSV
             </button>
           </div>
           <ClearLogsButton />
-
           <table style={{width:"100%", marginTop:20, borderCollapse:"collapse"}}>
             <thead>
               <tr style={{background:"#f5f5f5"}}>
@@ -269,7 +241,7 @@ export default function App() {
                   <td style={{padding:12}}>{log.part_name}</td>
                   <td style={{padding:12}}>{log.modified_part_number}</td>
                   <td style={{padding:12}}>
-                    <button onClick={() => startEdit(log)} style={{marginRight:12}}>✏️ Modify</button>
+                    <button onClick={() => startEdit(log)} style={{marginRight:12}}>✏️</button>
                     <button onClick={() => deleteLog(log.id)} style={{color:"red"}}>🗑️</button>
                   </td>
                 </tr>
