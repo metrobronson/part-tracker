@@ -56,20 +56,17 @@ export default function App() {
       created_at: new Date().toISOString()
     };
 
-    let localLogs = JSON.parse(localStorage.getItem("localPartLogs") || "[]");
-    
+    const localLogs = JSON.parse(localStorage.getItem("localPartLogs") || "[]");
     if (editingLog) {
       const index = localLogs.findIndex(l => l.id === editingLog.id);
       if (index !== -1) localLogs[index] = payload;
     } else {
       localLogs.unshift(payload);
     }
-
     localStorage.setItem("localPartLogs", JSON.stringify(localLogs));
-    setLogs([...localLogs]);   // Force update
-    setSaveStatus("💾 Saved successfully!");
+    setLogs(localLogs);
+    setSaveStatus("💾 Saved!");
     resetForm();
-
     setTimeout(() => setSaveStatus(""), 2000);
   }
 
@@ -130,79 +127,4 @@ export default function App() {
       </div>
 
       <div style={{ background: "#fff", borderRadius: 16, padding: 35, marginBottom: 40, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
-        <h2 style={{ color: "#003087" }}>{editingLog ? "Edit Log" : "New Part Modification"}</h2>
-        
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "22px" }}>
-          <div><label>Bus Number</label><input value={busNumber} onChange={e => setBusNumber(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
-          <div><label>Part Being Replaced</label><input value={partName} onChange={e => setPartName(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
-          <div><label>Modified Part Number</label><input value={modifiedPartNumber} onChange={e => setModifiedPartNumber(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
-
-          {isAdmin && (
-            <>
-              <div><label>Direct Fit Part Number</label><input value={directFitPartNumber} onChange={e => setDirectFitPartNumber(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
-              <div><label>Modified Part Cost ($)</label><input type="number" value={modifiedPartCost} onChange={e => setModifiedPartCost(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
-              <div><label>Direct Fit Part Cost ($)</label><input type="number" value={directFitPartCost} onChange={e => setDirectFitPartCost(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
-              <div><label>Labor Rate ($/hr)</label><input value={laborRate} onChange={e => setLaborRate(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
-              <div><label>Supplies Cost ($)</label><input type="number" value={suppliesCost} onChange={e => setSuppliesCost(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
-            </>
-          )}
-
-          <div style={{gridColumn: "span 2", display: "flex", gap: 20, alignItems: "flex-end"}}>
-            <div style={{flex:1}}><label>Clock In</label><input type="datetime-local" value={clockIn} onChange={e => setClockIn(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
-            <button onClick={() => setClockIn(new Date().toISOString().slice(0,16))} style={{padding:"14px 28px", background:"#4caf50", color:"white", border:"none", borderRadius:8}}>Start Job</button>
-            <div style={{flex:1}}><label>Clock Out</label><input type="datetime-local" value={clockOut} onChange={e => setClockOut(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
-            <button onClick={() => setClockOut(new Date().toISOString().slice(0,16))} style={{padding:"14px 28px", background:"#f44336", color:"white", border:"none", borderRadius:8}}>Finish Job</button>
-          </div>
-
-          <div style={{gridColumn:"span 2"}}><label>Comments</label><input value={comments} onChange={e => setComments(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
-          <div style={{gridColumn:"span 2"}}>
-            <label>Materials Used</label>
-            <textarea value={materialsUsed} onChange={e => setMaterialsUsed(e.target.value)} style={{width:"100%", padding:14, marginTop:8, minHeight:"110px", borderRadius:8}} />
-          </div>
-        </div>
-
-        <div style={{marginTop:30}}>
-          <button onClick={saveLog} style={{padding:"16px 40px", background:"#1976d2", color:"white", border:"none", borderRadius:10, fontSize:"17px"}}>
-            {editingLog ? "Update Log" : "Save Log"}
-          </button>
-          {saveStatus && <span style={{marginLeft:20, color: "green"}}>{saveStatus}</span>}
-        </div>
-      </div>
-
-      {isAdmin && (
-        <div style={{ background: "#fff", borderRadius: 16, padding: 30, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
-          <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15}}>
-            <h2>Saved Logs</h2>
-            <button onClick={loadLogs} style={{padding: "8px 16px"}}>Refresh Logs</button>
-          </div>
-          <ClearLogsButton />
-          <table style={{width:"100%", marginTop:20, borderCollapse:"collapse"}}>
-            <thead>
-              <tr style={{background:"#f5f5f5"}}>
-                <th style={{padding:12, textAlign:"left"}}>Date</th>
-                <th style={{padding:12, textAlign:"left"}}>Bus</th>
-                <th style={{padding:12, textAlign:"left"}}>Part</th>
-                <th style={{padding:12, textAlign:"left"}}>Modified #</th>
-                <th style={{padding:12, textAlign:"left"}}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map(log => (
-                <tr key={log.id} style={{borderTop:"1px solid #eee"}}>
-                  <td style={{padding:12}}>{new Date(log.created_at).toLocaleDateString()}</td>
-                  <td style={{padding:12}}>{log.bus_number}</td>
-                  <td style={{padding:12}}>{log.part_name}</td>
-                  <td style={{padding:12}}>{log.modified_part_number}</td>
-                  <td style={{padding:12}}>
-                    <button onClick={() => startEdit(log)} style={{marginRight:12}}>✏️</button>
-                    <button onClick={() => deleteLog(log.id)} style={{color:"red"}}>🗑️</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
+        <h2 style={{ color:
