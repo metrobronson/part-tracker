@@ -1,74 +1,49 @@
 import { useState } from 'react';
 
 export default function ClearLogsButton() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [password, setPassword] = useState("");
-  const [status, setStatus] = useState("");
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [inputPassword, setInputPassword] = useState("");
 
   const handleClear = () => {
-    if (password !== "Luke06106") {
-      setStatus("❌ Wrong password");
-      return;
+    if (inputPassword === "123456") {
+      if (window.confirm("Are you sure you want to delete ALL logs? This cannot be undone!")) {
+        localStorage.removeItem("localPartLogs");
+        window.location.reload(); // Refresh to update logs
+      }
+      setShowPrompt(false);
+      setInputPassword("");
+    } else {
+      alert("Incorrect password");
+      setInputPassword("");
     }
-
-    // Clear everything locally
-    localStorage.removeItem("localPartLogs");
-    setStatus("✅ All logs cleared!");
-    
-    setTimeout(() => {
-      window.location.reload(); // Refresh to show empty table
-    }, 800);
   };
 
   return (
-    <>
+    <div style={{ marginBottom: 20 }}>
       <button 
-        onClick={() => { setIsOpen(true); setPassword(""); setStatus(""); }}
-        style={{ background: "#d32f2f", color: "white", padding: "8px 16px", border: "none", borderRadius: 6 }}
+        onClick={() => setShowPrompt(true)}
+        style={{ padding: "10px 20px", background: "#d32f2f", color: "white", border: "none", borderRadius: 8, cursor: "pointer" }}
       >
-        Clear All Logs
+        🗑️ Clear All Logs
       </button>
 
-      {isOpen && (
-        <div style={{
-          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(0,0,0,0.7)", display: "flex",
-          alignItems: "center", justifyContent: "center", zIndex: 10000
-        }}>
-          <div style={{ background: "white", padding: 30, borderRadius: 12, width: 420, textAlign: "center" }}>
-            <h3>🗑️ Clear ALL Logs</h3>
-            <p style={{ color: "#d32f2f", margin: "15px 0" }}>
-              This will permanently delete every record.<br />
-              This cannot be undone.
-            </p>
-
-            <input 
-              type="password" 
-              placeholder="Enter password" 
-              value={password} 
-              onChange={e => setPassword(e.target.value)}
-              style={{ width: "100%", padding: 12, margin: "15px 0", fontSize: "16px" }}
-            />
-
-            <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 20 }}>
-              <button 
-                onClick={() => { setIsOpen(false); setPassword(""); setStatus(""); }}
-                style={{ padding: "12px 24px" }}
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleClear}
-                style={{ padding: "12px 24px", background: "#d32f2f", color: "white", border: "none", borderRadius: 6 }}
-              >
-                Yes, Delete All Logs
-              </button>
-            </div>
-
-            {status && <p style={{ marginTop: 15, fontWeight: "bold" }}>{status}</p>}
-          </div>
+      {showPrompt && (
+        <div style={{ marginTop: 15, padding: 15, background: "#fff", border: "1px solid #ddd", borderRadius: 8 }}>
+          <p>Enter password to clear all logs:</p>
+          <input 
+            type="password" 
+            value={inputPassword} 
+            onChange={(e) => setInputPassword(e.target.value)}
+            style={{ padding: 10, width: "200px", marginRight: 10 }}
+          />
+          <button onClick={handleClear} style={{ padding: "10px 20px", background: "#d32f2f", color: "white", border: "none", borderRadius: 8 }}>
+            Confirm Clear
+          </button>
+          <button onClick={() => { setShowPrompt(false); setInputPassword(""); }} style={{ marginLeft: 10, padding: "10px 20px" }}>
+            Cancel
+          </button>
         </div>
       )}
-    </>
+    </div>
   );
 }
