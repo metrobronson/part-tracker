@@ -110,25 +110,32 @@ export default function App() {
   function exportCSV() {
     if (logs.length === 0) return alert("No logs to export");
     
-    const headers = "Date,Bus Number,Part Name,Modified Part Number,Direct Fit Part Number,Modified Part Cost,Direct Fit Part Cost,Labor Rate,Supplies Cost,Materials Used,Clock In,Clock Out,Comments\n";
-    
-    const rows = logs.map(log => [
-      new Date(log.created_at).toLocaleString(),
-      `"${log.bus_number || ''}"`,
-      `"${log.part_name || ''}"`,
-      `"${log.modified_part_number || ''}"`,
-      `"${log.direct_fit_part_number || ''}"`,
-      log.modified_part_cost || 0,
-      log.direct_fit_part_cost || 0,
-      log.labor_rate || 0,
-      log.supplies_cost || 0,
-      `"${(log.materials_used || "").replace(/"/g, '""')}"`,
-      `"${log.clock_in || ''}"`,
-      `"${log.clock_out || ''}"`,
-      `"${(log.comments || "").replace(/"/g, '""')}"`
-    ].join(","));
+    const headers = [
+      "Date", "Bus Number", "Part Name", "Modified Part Number", 
+      "Direct Fit Part Number", "Modified Part Cost", "Direct Fit Part Cost", 
+      "Labor Rate", "Supplies Cost", "Materials Used", "Clock In", "Clock Out", "Comments"
+    ];
 
-    const csvContent = headers + rows.join("\n");
+    const csvRows = logs.map(log => {
+      return [
+        new Date(log.created_at).toLocaleString(),
+        `"${log.bus_number || ''}"`,
+        `"${log.part_name || ''}"`,
+        `"${log.modified_part_number || ''}"`,
+        `"${log.direct_fit_part_number || ''}"`,
+        log.modified_part_cost || 0,
+        log.direct_fit_part_cost || 0,
+        log.labor_rate || 0,
+        log.supplies_cost || 0,
+        `"${(log.materials_used || "").replace(/"/g, '""')}"`,
+        `"${log.clock_in || ''}"`,
+        `"${log.clock_out || ''}"`,
+        `"${(log.comments || "").replace(/"/g, '""')}"`
+      ].join(",");
+    });
+
+    const csvContent = headers.join(",") + "\n" + csvRows.join("\n");
+    
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -191,7 +198,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* === FORM === */}
       <div style={{ background: "#fff", borderRadius: 16, padding: 35, marginBottom: 40, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
         <h2 style={{ color: "#003087" }}>{editingLog ? "Edit Log" : "New Part Modification"}</h2>
         
