@@ -109,7 +109,9 @@ export default function App() {
 
   function exportCSV() {
     if (logs.length === 0) return alert("No logs to export");
+    
     const headers = "Date,Bus Number,Part Name,Modified Part Number,Direct Fit Part Number,Modified Part Cost,Direct Fit Part Cost,Labor Rate,Supplies Cost,Materials Used,Clock In,Clock Out,Comments\n";
+    
     const rows = logs.map(log => [
       new Date(log.created_at).toLocaleString(),
       `"${log.bus_number || ''}"`,
@@ -125,6 +127,7 @@ export default function App() {
       `"${log.clock_out || ''}"`,
       `"${(log.comments || "").replace(/"/g, '""')}"`
     ].join(","));
+
     const csvContent = headers + rows.join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -134,14 +137,13 @@ export default function App() {
     a.click();
   }
 
-  // Inline Clear Logs Button
   function clearAllLogs() {
     const pass = prompt("Enter password to clear all logs:");
     if (pass === "123456") {
       if (window.confirm("Delete ALL logs? This cannot be undone!")) {
         localStorage.removeItem("localPartLogs");
         setLogs([]);
-        alert("All logs cleared.");
+        alert("✅ All logs cleared.");
       }
     } else {
       alert("Incorrect password.");
@@ -175,7 +177,6 @@ export default function App() {
 
   return (
     <div style={{ padding: 20, fontFamily: "Arial", maxWidth: 1600, margin: "0 auto", background: "#f8f9fa", minHeight: "100vh" }}>
-      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 50, paddingBottom: 30, borderBottom: "6px solid #003087" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "25px" }}>
           <img src="/metro-logo.png" alt="Metro Logo" style={{ height: "90px" }} />
@@ -190,11 +191,39 @@ export default function App() {
         </div>
       </div>
 
-      {/* Form */}
+      {/* === FORM === */}
       <div style={{ background: "#fff", borderRadius: 16, padding: 35, marginBottom: 40, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
         <h2 style={{ color: "#003087" }}>{editingLog ? "Edit Log" : "New Part Modification"}</h2>
-        {/* ... form fields same as before ... */}
-        {/* (I kept it short here - paste the full form from previous message if needed) */}
+        
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "22px" }}>
+          <div><label>Bus Number</label><input value={busNumber} onChange={e => setBusNumber(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+          <div><label>Part Being Replaced</label><input value={partName} onChange={e => setPartName(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+          <div><label>Modified Part Number</label><input value={modifiedPartNumber} onChange={e => setModifiedPartNumber(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+
+          {isAdmin && (
+            <>
+              <div><label>Direct Fit Part Number</label><input value={directFitPartNumber} onChange={e => setDirectFitPartNumber(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+              <div><label>Modified Part Cost ($)</label><input type="number" value={modifiedPartCost} onChange={e => setModifiedPartCost(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+              <div><label>Direct Fit Part Cost ($)</label><input type="number" value={directFitPartCost} onChange={e => setDirectFitPartCost(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+              <div><label>Labor Rate ($/hr)</label><input value={laborRate} onChange={e => setLaborRate(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+              <div><label>Supplies Cost ($)</label><input type="number" value={suppliesCost} onChange={e => setSuppliesCost(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+            </>
+          )}
+
+          <div style={{gridColumn: "span 2", display: "flex", gap: 20, alignItems: "flex-end"}}>
+            <div style={{flex:1}}><label>Clock In (Eastern)</label><input type="datetime-local" value={clockIn} onChange={e => setClockIn(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+            <button onClick={() => setClockIn(getEasternTime().slice(0,16))} style={{padding:"14px 28px", background:"#4caf50", color:"white", border:"none", borderRadius:8}}>Start Job</button>
+            <div style={{flex:1}}><label>Clock Out (Eastern)</label><input type="datetime-local" value={clockOut} onChange={e => setClockOut(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+            <button onClick={() => setClockOut(getEasternTime().slice(0,16))} style={{padding:"14px 28px", background:"#f44336", color:"white", border:"none", borderRadius:8}}>Finish Job</button>
+          </div>
+
+          <div style={{gridColumn:"span 2"}}><label>Comments</label><input value={comments} onChange={e => setComments(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
+          <div style={{gridColumn:"span 2"}}>
+            <label>Materials Used</label>
+            <textarea value={materialsUsed} onChange={e => setMaterialsUsed(e.target.value)} style={{width:"100%", padding:14, marginTop:8, minHeight:"110px", borderRadius:8}} />
+          </div>
+        </div>
+
         <div style={{marginTop:30}}>
           <button onClick={saveLog} style={{padding:"16px 40px", background:"#1976d2", color:"white", border:"none", borderRadius:10, fontSize:"17px"}}>
             {editingLog ? "Update Log" : "Save Log"}
@@ -213,7 +242,7 @@ export default function App() {
           </div>
           
           <button onClick={clearAllLogs} style={{padding:"10px 24px", background:"#d32f2f", color:"white", border:"none", borderRadius:8, marginBottom:20}}>
-            🗑️ Clear All Logs (Password Protected)
+            🗑️ Clear All Logs (Password: 123456)
           </button>
 
           <table style={{width:"100%", borderCollapse:"collapse"}}>
