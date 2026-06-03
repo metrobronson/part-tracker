@@ -37,11 +37,18 @@ export default function App() {
     loadLogs();
   }, []);
 
-  const getEasternTime = () => new Date().toLocaleString('en-CA', { 
-    timeZone: 'America/New_York', 
-    year: 'numeric', month: '2-digit', day: '2-digit', 
-    hour: '2-digit', minute: '2-digit', hour12: false 
-  }).replace(',', '');
+  const getEasternTime = () => {
+    const now = new Date();
+    return now.toLocaleString('en-CA', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).replace(',', '').replace(' ', 'T').slice(0, 16);
+  };
 
   function startEdit(log) {
     if (!isAdmin) return;
@@ -114,7 +121,7 @@ export default function App() {
     const headers = "Date,Bus Number,Part Name,Modified Part Number,Direct Fit Part Number,Modified Part Cost,Direct Fit Part Cost,Labor Rate,Supplies Cost,Materials Used,Clock In,Clock Out,Comments";
     
     const rows = logs.map(log => [
-      new Date(log.created_at).toLocaleString(),
+      new Date(log.created_at).toLocaleString('en-US'),
       `"${log.bus_number || ''}"`,
       `"${log.part_name || ''}"`,
       `"${log.modified_part_number || ''}"`,
@@ -212,9 +219,9 @@ export default function App() {
 
           <div style={{gridColumn: "span 2", display: "flex", gap: 20, alignItems: "flex-end"}}>
             <div style={{flex:1}}><label>Clock In (Eastern)</label><input type="datetime-local" value={clockIn} onChange={e => setClockIn(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
-            <button onClick={() => setClockIn(getEasternTime().slice(0,16))} style={{padding:"14px 28px", background:"#4caf50", color:"white", border:"none", borderRadius:8}}>Start Job</button>
+            <button onClick={() => setClockIn(getEasternTime())} style={{padding:"14px 28px", background:"#4caf50", color:"white", border:"none", borderRadius:8}}>Start Job</button>
             <div style={{flex:1}}><label>Clock Out (Eastern)</label><input type="datetime-local" value={clockOut} onChange={e => setClockOut(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
-            <button onClick={() => setClockOut(getEasternTime().slice(0,16))} style={{padding:"14px 28px", background:"#f44336", color:"white", border:"none", borderRadius:8}}>Finish Job</button>
+            <button onClick={() => setClockOut(getEasternTime())} style={{padding:"14px 28px", background:"#f44336", color:"white", border:"none", borderRadius:8}}>Finish Job</button>
           </div>
 
           <div style={{gridColumn:"span 2"}}><label>Comments</label><input value={comments} onChange={e => setComments(e.target.value)} style={{width:"100%", padding:14, marginTop:8, borderRadius:8}} /></div>
@@ -240,11 +247,9 @@ export default function App() {
               📥 Export CSV
             </button>
           </div>
-          
           <button onClick={clearAllLogs} style={{padding:"10px 24px", background:"#d32f2f", color:"white", border:"none", borderRadius:8, marginBottom:20}}>
             🗑️ Clear All Logs (Password: 123456)
           </button>
-
           <table style={{width:"100%", borderCollapse:"collapse"}}>
             <thead>
               <tr style={{background:"#f5f5f5"}}>
