@@ -37,18 +37,11 @@ export default function App() {
     loadLogs();
   }, []);
 
-  const getEasternTime = () => {
-    const now = new Date();
-    return now.toLocaleString('en-CA', {
-      timeZone: 'America/New_York',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }).replace(',', '').replace(' ', 'T').slice(0, 16);
-  };
+  const getEasternTime = () => new Date().toLocaleString('en-CA', { 
+    timeZone: 'America/New_York', 
+    year: 'numeric', month: '2-digit', day: '2-digit', 
+    hour: '2-digit', minute: '2-digit', hour12: false 
+  }).replace(',', '');
 
   function startEdit(log) {
     if (!isAdmin) return;
