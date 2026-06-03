@@ -167,22 +167,19 @@ export default function App() {
         <h2 style={{ marginBottom: 20 }}>New User Sign Up</h2>
         <button onClick={() => alert("Sign Up coming soon - use Quick Login")} style={{ width: "100%", padding: "16px", background: "#003087", color: "white", border: "none", borderRadius: 12, fontSize: "18px", marginBottom: 40 }}>
           Create Account
-        </button>
-
-        <h3 style={{ marginBottom: 20 }}>Quick Login</h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <button onClick={() => bypassLogin(true)} style={{ padding: "22px", fontSize: "20px", background: "#003087", color: "white", border: "none", borderRadius: 12 }}>
-            👑 Admin - Gary (Full Access)
-          </button>
-          <button onClick={() => bypassLogin(false)} style={{ padding: "22px", fontSize: "20px", background: "#1976d2", color: "white", border: "none", borderRadius: 12 }}>
-            👷 Technician (Input Only)
-          </button>
+       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 50, paddingBottom: 30, borderBottom: "6px solid #003087", gap: "30px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "25px", flex: 1 }}>
+          <img src="/metro-logo.png" alt="Metro Logo" style={{ height: "90px" }} />
+          <div>
+            <h1 style={{ margin: 0, fontSize: "2.6rem", color: "#003087", fontWeight: "bold", lineHeight: 1.1 }}>Part Modification Cost Tracker</h1>
+            <p style={{ margin: 5, color: "#555", fontSize: "1.35rem" }}>Fleet Maintenance • Metro</p>
+          </div>
+        </div>
+        <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+          <span style={{ marginRight: 20 }}>Signed in as: <strong>{user.email}</strong> ({isAdmin ? "Admin" : "Technician"})</span>
+          <button onClick={signOut} style={{ padding: "12px 28px", background: "#d32f2f", color: "white", border: "none", borderRadius: 8 }}>Sign Out</button>
         </div>
       </div>
-    );
-  }
-
-  return (
     <div style={{ padding: 20, fontFamily: "Arial", maxWidth: 1600, margin: "0 auto", background: "#f8f9fa", minHeight: "100vh" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 50, paddingBottom: 30, borderBottom: "6px solid #003087" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "25px" }}>
