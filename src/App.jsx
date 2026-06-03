@@ -111,70 +111,37 @@ export default function App() {
   function exportCSV() {
     if (logs.length === 0) return alert("No logs to export");
     
-    const headers = [
-      "Date", "Bus Number", "Part Name", "Modified Part Number", 
-      "Direct Fit Part Number", "Modified Part Cost", "Direct Fit Part Cost", 
-      "Labor Rate", "Supplies Cost", "Materials Used", "Clock In", 
-      "Clock Out", "Comments"
-    ];
+    const headers = "Date,Bus Number,Part Name,Modified Part Number,Direct Fit Part Number,Modified Part Cost,Direct Fit Part Cost,Labor Rate,Supplies Cost,Materials Used,Clock In,Clock Out,Comments";
 
-    const rows = logs.map(log => [
-      `"${new Date(log.created_at).toLocaleString('en-US')}"`,
-      `"${(log.bus_number || '').replace(/"/g, '""')}"`,
-      `"${(log.part_name || '').replace(/"/g, '""')}"`,
-      `"${(log.modified_part_number || '').replace(/"/g, '""')}"`,
-      `"${(log.direct_fit_part_number || '').replace(/"/g, '""')}"`,
-      log.modified_part_cost || 0,
-      log.direct_fit_part_cost || 0,
-      log.labor_rate || 0,
-      log.supplies_cost || 0,
-      `"${(log.materials_used || '').replace(/"/g, '""')}"`,
-      `"${log.clock_in || ''}"`,
-      `"${log.clock_out || ''}"`,
-      `"${(log.comments || '').replace(/"/g, '""')}"`
-    ].join(","));
+    const rows = logs.map(log => {
+      return [
+        `"${new Date(log.created_at).toLocaleString('en-US')}"`,
+        `"${(log.bus_number || '').replace(/"/g, '""')}"`,
+        `"${(log.part_name || '').replace(/"/g, '""')}"`,
+        `"${(log.modified_part_number || '').replace(/"/g, '""')}"`,
+        `"${(log.direct_fit_part_number || '').replace(/"/g, '""')}"`,
+        log.modified_part_cost || 0,
+        log.direct_fit_part_cost || 0,
+        log.labor_rate || 0,
+        log.supplies_cost || 0,
+        `"${(log.materials_used || '').replace(/"/g, '""')}"`,
+        `"${log.clock_in || ''}"`,
+        `"${log.clock_out || ''}"`,
+        `"${(log.comments || '').replace(/"/g, '""')}"`
+      ].join(",");
+    });
 
-    const csvContent = headers.join(",") + "\n" + rows.join("\n");
-    
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "part-logs.csv";
-    a.click();
-  }
-    const rows = logs.map(log => [
-      new Date(log.created_at).toLocaleString('en-US'),
-      `"${(log.bus_number || '').replace(/"/g, '""')}"`,
-      `"${(log.part_name || '').replace(/"/g, '""')}"`,
-      `"${(log.modified_part_number || '').replace(/"/g, '""')}"`,
-      `"${(log.direct_fit_part_number || '').replace(/"/g, '""')}"`,
-      log.modified_part_cost || 0,
-      log.direct_fit_part_cost || 0,
-      log.labor_rate || 0,
-      log.supplies_cost || 0,
-      `"${(log.materials_used || '').replace(/"/g, '""')}"`,
-      `"${log.clock_in || ''}"`,
-      `"${log.clock_out || ''}"`,
-      `"${(log.comments || '').replace(/"/g, '""')}"`
-    ].join(","));
-
-    const csvContent = headers.join(",") + "\n" + rows.join("\n");
-    
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "part-logs.csv";
-    a.click();
-  }
     const csvContent = headers + "\n" + rows.join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
+    
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "part-logs.csv";
-    a.click();
+    link.href = url;
+    link.download = "part-logs.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 
   function clearAllLogs() {
