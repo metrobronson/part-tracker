@@ -87,7 +87,7 @@ export default function App() {
     }
     localStorage.setItem("localPartLogs", JSON.stringify(localLogs));
     setLogs(localLogs);
-    setSaveStatus("💾 Saved successfully!");
+    setSaveStatus("Saved!");
     resetForm();
     setTimeout(() => setSaveStatus(""), 2000);
   }
@@ -101,7 +101,7 @@ export default function App() {
 
   function deleteLog(id) {
     if (!isAdmin) return;
-    if (!window.confirm("Delete this log?")) return;
+    if (!window.confirm("Delete?")) return;
     let localLogs = JSON.parse(localStorage.getItem("localPartLogs") || "[]");
     localLogs = localLogs.filter(l => l.id !== id);
     localStorage.setItem("localPartLogs", JSON.stringify(localLogs));
@@ -109,7 +109,7 @@ export default function App() {
   }
 
   function exportCSV() {
-    if (logs.length === 0) return alert("No logs to export");
+    if (logs.length === 0) return alert("No logs");
     
     const headers = "Date,Bus Number,Part Name,Modified Part Number,Direct Fit Part Number,Modified Part Cost,Direct Fit Part Cost,Labor Rate,Supplies Cost,Materials Used,Clock In,Clock Out,Comments";
     
@@ -130,26 +130,23 @@ export default function App() {
     ].join(","));
 
     const csvContent = headers + "\n" + rows.join("\n");
-
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `part-logs-${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = "part-logs.csv";
     a.click();
   }
 
   function clearAllLogs() {
-    const pass = prompt("Enter password to clear all logs:");
+    const pass = prompt("Password:");
     if (pass === "123456") {
-      if (window.confirm("Delete ALL logs? This cannot be undone!")) {
+      if (window.confirm("Delete all?")) {
         localStorage.removeItem("localPartLogs");
         setLogs([]);
-        alert("All logs cleared.");
+        alert("Cleared");
       }
-    } else {
-      alert("Incorrect password.");
-    }
+    } else alert("Wrong password");
   }
 
   if (!user) {
@@ -160,7 +157,7 @@ export default function App() {
         <p style={{ fontSize: "1.35rem", color: "#555", marginBottom: 40 }}>Fleet Maintenance • Metro</p>
 
         <h2 style={{ marginBottom: 20 }}>New User Sign Up</h2>
-        <button onClick={() => alert("Sign Up coming soon - use Quick Login")} style={{ width: "100%", padding: "16px", background: "#003087", color: "white", border: "none", borderRadius: 12, fontSize: "18px", marginBottom: 40 }}>
+        <button onClick={() => alert("Sign Up coming soon - use Quick Login below")} style={{ width: "100%", padding: "16px", background: "#003087", color: "white", border: "none", borderRadius: 12, fontSize: "18px", marginBottom: 40 }}>
           Create Account
         </button>
 
@@ -179,7 +176,7 @@ export default function App() {
 
   return (
     <div style={{ padding: 20, fontFamily: "Arial", maxWidth: 1600, margin: "0 auto", background: "#f8f9fa", minHeight: "100vh" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 50, paddingBottom: 30, borderBottom: "6px solid #003087" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 40, paddingBottom: 20, borderBottom: "6px solid #003087" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "25px" }}>
           <img src="/metro-logo.png" alt="Metro Logo" style={{ height: "90px" }} />
           <div>
@@ -193,7 +190,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* FORM */}
       <div style={{ background: "#fff", borderRadius: 16, padding: 35, marginBottom: 40, boxShadow: "0 8px 25px rgba(0,0,0,0.08)" }}>
         <h2 style={{ color: "#003087" }}>{editingLog ? "Edit Log" : "New Part Modification"}</h2>
         
@@ -242,11 +238,9 @@ export default function App() {
               📥 Export CSV
             </button>
           </div>
-          
           <button onClick={clearAllLogs} style={{padding:"10px 24px", background:"#d32f2f", color:"white", border:"none", borderRadius:8, marginBottom:20}}>
             🗑️ Clear All Logs (Password: 123456)
           </button>
-
           <table style={{width:"100%", borderCollapse:"collapse"}}>
             <thead>
               <tr style={{background:"#f5f5f5"}}>
@@ -265,8 +259,8 @@ export default function App() {
                   <td style={{padding:12}}>{log.part_name}</td>
                   <td style={{padding:12}}>{log.modified_part_number}</td>
                   <td style={{padding:12}}>
-                    <button onClick={() => startEdit(log)} style={{marginRight:12}}>✏️ Edit</button>
-                    <button onClick={() => deleteLog(log.id)} style={{color:"red"}}>🗑️ Delete</button>
+                    <button onClick={() => startEdit(log)} style={{marginRight:12}}>✏️</button>
+                    <button onClick={() => deleteLog(log.id)} style={{color:"red"}}>🗑️</button>
                   </td>
                 </tr>
               ))}
