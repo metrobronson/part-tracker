@@ -108,27 +108,18 @@ export default function App() {
     setLogs(localLogs);
   }
 
-    function exportCSV() {
+  function exportCSV() {
     if (logs.length === 0) return alert("No logs to export");
     
     const headers = [
-      "Date",
-      "Bus Number",
-      "Part Name",
-      "Modified Part Number",
-      "Direct Fit Part Number",
-      "Modified Part Cost",
-      "Direct Fit Part Cost",
-      "Labor Rate",
-      "Supplies Cost",
-      "Materials Used",
-      "Clock In",
-      "Clock Out",
-      "Comments"
+      "Date", "Bus Number", "Part Name", "Modified Part Number", 
+      "Direct Fit Part Number", "Modified Part Cost", "Direct Fit Part Cost", 
+      "Labor Rate", "Supplies Cost", "Materials Used", "Clock In", 
+      "Clock Out", "Comments"
     ];
 
     const rows = logs.map(log => [
-      new Date(log.created_at).toLocaleString('en-US'),
+      `"${new Date(log.created_at).toLocaleString('en-US')}"`,
       `"${(log.bus_number || '').replace(/"/g, '""')}"`,
       `"${(log.part_name || '').replace(/"/g, '""')}"`,
       `"${(log.modified_part_number || '').replace(/"/g, '""')}"`,
